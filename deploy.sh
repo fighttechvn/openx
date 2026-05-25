@@ -75,8 +75,9 @@ if git -C "$PAGES_WORKTREE" diff --cached --quiet; then
   echo "No dashboard changes to deploy."
 else
   git -C "$PAGES_WORKTREE" commit -m "Deploy dashboard to GitHub Pages"
-  git -C "$PAGES_WORKTREE" push origin "HEAD:$PAGES_BRANCH"
 fi
+
+git -C "$PAGES_WORKTREE" push origin "HEAD:$PAGES_BRANCH"
 
 TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
 if [[ -n "$TOKEN" ]]; then
