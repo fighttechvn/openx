@@ -5,6 +5,7 @@ create table if not exists public.openx_cloud_workspaces (
   slug text not null unique,
   name text,
   sync_key_hash text not null,
+  is_public boolean not null default false,
   config jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -13,6 +14,9 @@ create table if not exists public.openx_cloud_workspaces (
   constraint openx_cloud_workspaces_config_object
     check (jsonb_typeof(config) = 'object')
 );
+
+alter table public.openx_cloud_workspaces
+  add column if not exists is_public boolean not null default false;
 
 create table if not exists public.openx_cloud_api_keys (
   id uuid primary key default gen_random_uuid(),
@@ -143,6 +147,7 @@ begin
       'id', target_workspace.id,
       'slug', target_workspace.slug,
       'name', target_workspace.name,
+      'isPublic', target_workspace.is_public,
       'updatedAt', target_workspace.updated_at
     ),
     'config', target_workspace.config
@@ -216,6 +221,7 @@ begin
       'id', saved_workspace.id,
       'slug', saved_workspace.slug,
       'name', saved_workspace.name,
+      'isPublic', saved_workspace.is_public,
       'updatedAt', saved_workspace.updated_at
     ),
     'config', saved_workspace.config
@@ -349,14 +355,32 @@ begin
 end;
 $$;
 
+create or replace function public.openx_list_public_workspaces()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'slug', workspace.slug,
+    'name', workspace.name,
+    'updatedAt', workspace.updated_at
+  ) order by workspace.slug), '[]'::jsonb)
+  from public.openx_cloud_workspaces workspace
+  where workspace.is_public;
+$$;
+
 revoke all on function public.openx_pull_config(text, text) from public;
 revoke all on function public.openx_push_config(text, text, jsonb, text) from public;
 revoke all on function public.openx_create_api_key(text, text, text) from public;
 revoke all on function public.openx_list_api_keys(text, text) from public;
 revoke all on function public.openx_revoke_api_key(text, text, uuid) from public;
+revoke all on function public.openx_list_public_workspaces() from public;
 
 grant execute on function public.openx_pull_config(text, text) to anon, authenticated;
 grant execute on function public.openx_push_config(text, text, jsonb, text) to anon, authenticated;
 grant execute on function public.openx_create_api_key(text, text, text) to anon, authenticated;
 grant execute on function public.openx_list_api_keys(text, text) to anon, authenticated;
 grant execute on function public.openx_revoke_api_key(text, text, uuid) to anon, authenticated;
+grant execute on function public.openx_list_public_workspaces() to anon, authenticated;

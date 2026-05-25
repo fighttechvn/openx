@@ -1,19 +1,32 @@
 (function () {
   const STORAGE_KEY = "openx-mirror-state-v1";
+  const DEFAULT_CLOUD = {
+    supabaseUrl: "https://ammzciylpheudvweponu.supabase.co",
+    anonKey: "sb_publishable_XRclGsYmadv897KeWhAkwg_xBbFK8_W"
+  };
+  const DEFAULT_PUBLIC_WORKSPACES = new Set(["public1", "public2", "public3", "fighttechvn", "trunghieu"]);
   const state = loadState();
+  if (!Array.isArray(state.machines)) state.machines = [];
   ensureFileTypeState(state);
   ensureCloudState(state);
+  ensureUiState(state);
   let activeMachineId = state.activeMachineId || null;
   let editingMachineId = null;
   let editingFolderId = null;
   let currentResults = [];
   let lanDevices = [];
   let editingFileTypes = [];
+  let sidebarOpen = false;
 
   const el = {
     machineList: document.getElementById("machineList"),
+    menuBtn: document.getElementById("menuBtn"),
+    sidebarOverlay: document.getElementById("sidebarOverlay"),
+    sidebarCloseBtn: document.getElementById("sidebarCloseBtn"),
     activeMachineName: document.getElementById("activeMachineName"),
     activeMachineMeta: document.getElementById("activeMachineMeta"),
+    cloudAdvancedBtn: document.getElementById("cloudAdvancedBtn"),
+    cloudAdvancedPanel: document.getElementById("cloudAdvancedPanel"),
     cloudUrlInput: document.getElementById("cloudUrlInput"),
     cloudAnonKeyInput: document.getElementById("cloudAnonKeyInput"),
     cloudWorkspaceInput: document.getElementById("cloudWorkspaceInput"),
@@ -36,6 +49,12 @@
     pairForm: document.getElementById("pairForm"),
     pairCodeInput: document.getElementById("pairCodeInput"),
     clientNameInput: document.getElementById("clientNameInput"),
+    apiKeyDialog: document.getElementById("apiKeyDialog"),
+    apiKeyForm: document.getElementById("apiKeyForm"),
+    apiWorkspaceInput: document.getElementById("apiWorkspaceInput"),
+    apiKeyInput: document.getElementById("apiKeyInput"),
+    apiSupabaseUrlInput: document.getElementById("apiSupabaseUrlInput"),
+    apiAnonKeyInput: document.getElementById("apiAnonKeyInput"),
     folderDialog: document.getElementById("folderDialog"),
     folderForm: document.getElementById("folderForm"),
     folderNameInput: document.getElementById("folderNameInput"),
@@ -49,15 +68,20 @@
     installAgentCommand: document.getElementById("installAgentCommand")
   };
 
+  el.menuBtn.addEventListener("click", () => setSidebarOpen(!sidebarOpen));
+  el.sidebarCloseBtn.addEventListener("click", () => setSidebarOpen(false));
+  el.sidebarOverlay.addEventListener("click", () => setSidebarOpen(false));
   document.getElementById("addMachineBtn").addEventListener("click", openNewMachineDialog);
   document.getElementById("editMachineBtn").addEventListener("click", openEditMachineDialog);
   document.getElementById("pairBtn").addEventListener("click", openPairDialog);
   document.getElementById("scanLanBtn").addEventListener("click", scanLan);
   document.getElementById("healthBtn").addEventListener("click", checkHealth);
+  document.getElementById("apiKeyBtn").addEventListener("click", openApiKeyDialog);
   document.getElementById("deleteMachineBtn").addEventListener("click", deleteActiveMachine);
   document.getElementById("saveCloudBtn").addEventListener("click", saveCloudSettings);
   document.getElementById("pullCloudBtn").addEventListener("click", pullCloudConfig);
   document.getElementById("pushCloudBtn").addEventListener("click", pushCloudConfig);
+  el.cloudAdvancedBtn.addEventListener("click", toggleCloudAdvanced);
   document.getElementById("addFolderBtn").addEventListener("click", openNewFolderDialog);
   document.getElementById("installAgentBtn").addEventListener("click", openInstallAgentDialog);
   document.getElementById("copyInstallAgentBtn").addEventListener("click", copyInstallAgentCommand);
@@ -68,10 +92,19 @@
 
   el.machineForm.addEventListener("submit", saveMachine);
   el.pairForm.addEventListener("submit", pairMachine);
+  el.apiKeyForm.addEventListener("submit", loadCloudFromApiKey);
+  document.getElementById("saveDesktopToCloudBtn").addEventListener("click", saveDesktopToCloud);
   el.folderForm.addEventListener("submit", saveFolder);
   el.fileTypesForm.addEventListener("submit", saveFileTypes);
+  document.querySelectorAll("dialog button[value='cancel']").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      button.closest("dialog")?.close("cancel");
+    });
+  });
 
   render();
+  handleAutoPairFromUrl();
 
   function loadState() {
     try {
@@ -93,6 +126,7 @@
   }
 
   function render() {
+    renderShell();
     renderMachines();
     renderActiveMachine();
     renderCloudSettings();
@@ -101,6 +135,12 @@
     renderFileTypeTags();
     renderResults();
     persist();
+  }
+
+  function renderShell() {
+    document.body.classList.toggle("sidebar-open", sidebarOpen);
+    el.sidebarOverlay.hidden = !sidebarOpen;
+    el.menuBtn.setAttribute("aria-expanded", String(sidebarOpen));
   }
 
   function renderMachines() {
@@ -122,6 +162,7 @@
       button.addEventListener("click", () => {
         activeMachineId = machine.id;
         currentResults = [];
+        setSidebarOpen(false);
         render();
       });
       el.machineList.appendChild(button);
@@ -145,6 +186,9 @@
     el.cloudWorkspaceInput.value = state.cloud.workspaceSlug || "";
     el.cloudWorkspaceNameInput.value = state.cloud.workspaceName || "";
     el.cloudSyncKeyInput.value = state.cloud.syncKey || "";
+    el.cloudAdvancedPanel.hidden = !state.ui.cloudAdvancedOpen;
+    el.cloudAdvancedBtn.setAttribute("aria-expanded", String(state.ui.cloudAdvancedOpen));
+    el.cloudAdvancedBtn.textContent = state.ui.cloudAdvancedOpen ? "Hide Advanced" : "Advanced";
     if (state.cloud.lastSyncedAt) {
       el.cloudSyncMeta.textContent = `Last cloud sync: ${new Date(state.cloud.lastSyncedAt).toLocaleString()}`;
     } else if (isCloudConfigured()) {
@@ -206,13 +250,12 @@
     for (const file of results) {
       const row = document.createElement("div");
       row.className = "result-row";
-      const link = apiUrl(activeMachine(), `/file/${encodeURIComponent(file.folderId)}/${file.relativePath.split("/").map(encodeURIComponent).join("/")}`);
       row.tabIndex = 0;
       row.setAttribute("role", "button");
       row.setAttribute("aria-label", `Open ${file.relativePath}`);
       row.innerHTML = `
         <div>
-          <a href="${link}" target="_blank" rel="noopener">${escapeHtml(file.name)}</a>
+          <a href="#" data-action="open-file">${escapeHtml(file.name)}</a>
           <div class="result-path">${escapeHtml(file.relativePath)}</div>
         </div>
         <div class="row-actions">
@@ -220,14 +263,18 @@
           <span class="status">${escapeHtml(file.folderName)}</span>
         </div>
       `;
+      row.querySelector('[data-action="open-file"]').addEventListener("click", (event) => {
+        event.preventDefault();
+        openStaticFile(file);
+      });
       row.addEventListener("click", (event) => {
         if (event.target.closest("a")) return;
-        window.open(link, "_blank", "noopener");
+        openStaticFile(file);
       });
       row.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          window.open(link, "_blank", "noopener");
+          openStaticFile(file);
         }
       });
       el.resultList.appendChild(row);
@@ -294,11 +341,64 @@
     render();
   }
 
-  function openPairDialog() {
-    if (!activeMachine()) return showToast("Select a machine first.");
+  async function openPairDialog() {
+    let machine = activeMachine();
+    if (!machine) {
+      machine = await findLocalAgent();
+      if (!machine) return showInstallGuide("Install or start the agent first.");
+    }
+    const health = await fetchAgentHealth(machine);
+    if (!health) return showInstallGuide("Agent is offline. Start it, then pair again.");
+    machine.agentMachineId = health.machineId || machine.agentMachineId;
+    machine.name = health.machineName || machine.name;
     el.pairCodeInput.value = "";
+    el.pairCodeInput.placeholder = health.pairingExpiresAt
+      ? `Code expires ${new Date(health.pairingExpiresAt).toLocaleTimeString()}`
+      : "123-456";
     el.clientNameInput.value = localStorage.getItem("openx-mirror-client-name") || "OpenX Dashboard";
+    render();
     el.pairDialog.showModal();
+  }
+
+  async function findLocalAgent() {
+    const machine = {
+      id: crypto.randomUUID(),
+      name: "Local Agent",
+      host: "localhost",
+      port: 8787,
+      folders: []
+    };
+    const health = await fetchAgentHealth(machine);
+    if (!health) return null;
+    const existing = state.machines.find((item) => (
+      item.host === machine.host && Number(item.port) === machine.port
+    ) || (health.machineId && item.agentMachineId === health.machineId));
+    if (existing) {
+      activeMachineId = existing.id;
+      existing.agentMachineId = health.machineId || existing.agentMachineId;
+      existing.name = health.machineName || existing.name;
+      return existing;
+    }
+    machine.name = health.machineName || machine.name;
+    machine.agentMachineId = health.machineId || null;
+    state.machines.push(machine);
+    activeMachineId = machine.id;
+    return machine;
+  }
+
+  async function fetchAgentHealth(machine) {
+    try {
+      const response = await fetchWithTimeout(apiUrl(machine, "/health"), {}, 1400);
+      if (!response.ok) return null;
+      return response.json();
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function showInstallGuide(message) {
+    openInstallAgentDialog();
+    showToast(message);
   }
 
   async function pairMachine(event) {
@@ -318,11 +418,49 @@
       if (!response.ok) throw new Error(data.error || "Pairing failed.");
       machine.token = data.accessToken;
       machine.agentMachineId = data.machineId;
+      machine.name = data.machineName || machine.name;
       localStorage.setItem("openx-mirror-client-name", el.clientNameInput.value.trim());
       el.pairDialog.close();
       showToast("Machine paired.");
       await syncFolders();
       render();
+    } catch (error) {
+      showToast(error.message);
+    }
+  }
+
+  async function handleAutoPairFromUrl() {
+    let payload = null;
+    try {
+      payload = readAutoPairPayload();
+    } catch (_error) {
+      clearAutoPairHash();
+      showToast("Auto pair link is invalid.");
+      return;
+    }
+    if (!payload) return;
+    clearAutoPairHash();
+    try {
+      const machine = upsertAutoPairedMachine(payload);
+      activeMachineId = machine.id;
+      currentResults = [];
+      render();
+      try {
+        await syncFolders();
+      } catch (_error) {
+        machine.folders = machine.folders || [];
+      }
+      render();
+      if (isCloudConfigured()) {
+        try {
+          const pushed = await pushCloudConfig({ silent: true });
+          showToast(pushed ? "Agent paired and cloud config updated." : "Agent paired.");
+        } catch (error) {
+          showToast(`Agent paired. Cloud push failed: ${error.message}`);
+        }
+      } else {
+        showToast("Agent paired from localhost link.");
+      }
     } catch (error) {
       showToast(error.message);
     }
@@ -445,6 +583,38 @@
     }
   }
 
+  async function openStaticFile(file) {
+    const popup = window.open("about:blank", "_blank");
+    if (popup) popup.opener = null;
+    try {
+      const url = await createStaticFileUrl(file);
+      if (popup) {
+        popup.location.href = url;
+      } else {
+        window.location.href = url;
+      }
+    } catch (error) {
+      if (popup) popup.close();
+      showToast(error.message);
+    }
+  }
+
+  async function createStaticFileUrl(file) {
+    const machine = activeMachine();
+    if (!machine || !machine.token) throw new Error("Pair this machine first.");
+    const response = await fetch(apiUrl(machine, "/file-ticket"), {
+      method: "POST",
+      headers: { ...authHeaders(machine), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        folderId: file.folderId,
+        relativePath: file.relativePath
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not open file.");
+    return data.url;
+  }
+
   async function scanLan() {
     const machine = activeMachine();
     if (!machine || !machine.token) return showToast("Pair a local agent first.");
@@ -516,41 +686,130 @@
     showToast("Machine added. Pair it to manage folders.");
   }
 
-  function saveCloudSettings() {
+  function openApiKeyDialog() {
+    el.apiWorkspaceInput.value = state.cloud.workspaceSlug || "public1";
+    el.apiKeyInput.value = state.cloud.syncKey || "";
+    el.apiSupabaseUrlInput.value = state.cloud.supabaseUrl || DEFAULT_CLOUD.supabaseUrl;
+    el.apiAnonKeyInput.value = state.cloud.anonKey || DEFAULT_CLOUD.anonKey;
+    el.apiKeyDialog.showModal();
+    requestAnimationFrame(() => el.apiKeyInput.focus());
+  }
+
+  async function loadCloudFromApiKey(event) {
+    event.preventDefault();
+    if (!applyApiKeyInputs()) return;
+    try {
+      await pullCloudConfig({ silent: true, skipSave: true });
+      el.apiKeyDialog.close();
+      showToast("Cloud loaded.");
+    } catch (error) {
+      showToast(error.message);
+    }
+  }
+
+  async function saveDesktopToCloud(event) {
+    event.preventDefault();
+    if (!applyApiKeyInputs()) return;
+    try {
+      await pushCloudConfig({ silent: true, skipSave: true });
+      el.apiKeyDialog.close();
+      showToast("Desktop saved to cloud.");
+    } catch (error) {
+      showToast(error.message);
+    }
+  }
+
+  function applyApiKeyInputs() {
+    const cloud = {
+      supabaseUrl: el.apiSupabaseUrlInput.value.trim().replace(/\/$/, ""),
+      anonKey: el.apiAnonKeyInput.value.trim(),
+      workspaceSlug: el.apiWorkspaceInput.value.trim().toLowerCase(),
+      syncKey: el.apiKeyInput.value
+    };
+    if (!cloud.supabaseUrl || !cloud.anonKey || !cloud.workspaceSlug || !cloud.syncKey) {
+      showToast("Workspace, API key, and Supabase project are required.");
+      return false;
+    }
+    if (!/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(cloud.workspaceSlug)) {
+      showToast("Workspace must use lowercase letters, numbers, and dashes.");
+      return false;
+    }
+    const workspaceName = state.cloud.workspaceSlug === cloud.workspaceSlug
+      ? state.cloud.workspaceName
+      : workspaceDisplayName(cloud.workspaceSlug);
+    state.cloud = {
+      ...state.cloud,
+      ...cloud,
+      workspaceName
+    };
+    renderCloudSettings();
+    persist();
+    return true;
+  }
+
+  function workspaceDisplayName(slug) {
+    if (DEFAULT_PUBLIC_WORKSPACES.has(slug)) return slug;
+    return "";
+  }
+
+  function toggleCloudAdvanced() {
+    state.ui.cloudAdvancedOpen = !state.ui.cloudAdvancedOpen;
+    renderCloudSettings();
+    persist();
+  }
+
+  function saveCloudSettings(options = {}) {
+    const silent = options && options.silent === true;
     const cloud = readCloudInputs();
     if (cloud.workspaceSlug && !/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(cloud.workspaceSlug)) {
-      return showToast("Workspace must use lowercase letters, numbers, and dashes.");
+      if (!silent) showToast("Workspace must use lowercase letters, numbers, and dashes.");
+      return false;
     }
     state.cloud = { ...state.cloud, ...cloud };
     renderCloudSettings();
     persist();
-    showToast("Cloud settings saved.");
+    if (!silent) showToast("Cloud settings saved.");
+    return true;
   }
 
-  async function pullCloudConfig() {
-    saveCloudSettings();
-    if (!isCloudConfigured()) return showToast("Complete cloud settings first.");
+  async function pullCloudConfig(options = {}) {
+    const silent = options && options.silent === true;
+    if (!options.skipSave) saveCloudSettings({ silent });
+    if (!isCloudConfigured()) {
+      if (silent) throw new Error("Complete cloud settings first.");
+      return showToast("Complete cloud settings first.");
+    }
     try {
       const payload = await callSupabaseRpc("openx_pull_config", {
         p_workspace_slug: state.cloud.workspaceSlug,
         p_sync_key: state.cloud.syncKey
       });
       if (!payload.exists) {
+        if (silent) throw new Error("Cloud workspace is empty. Push local config first.");
         showToast("Cloud workspace is empty. Push local config first.");
         return;
       }
       applyCloudConfig(payload.config || {});
       state.cloud.lastSyncedAt = new Date().toISOString();
       render();
-      showToast("Cloud config pulled.");
+      if (!silent) showToast("Cloud config pulled.");
     } catch (error) {
+      if (silent) throw error;
       showToast(error.message);
     }
   }
 
-  async function pushCloudConfig() {
-    saveCloudSettings();
-    if (!isCloudConfigured()) return showToast("Complete cloud settings first.");
+  async function pushCloudConfig(options = {}) {
+    const silent = options && options.silent === true;
+    if (!options.skipSave && !saveCloudSettings({ silent })) {
+      if (silent) throw new Error("Cloud settings are invalid.");
+      return false;
+    }
+    if (!isCloudConfigured()) {
+      if (silent) throw new Error("Complete cloud settings first.");
+      if (!silent) showToast("Complete cloud settings first.");
+      return false;
+    }
     try {
       const payload = await callSupabaseRpc("openx_push_config", {
         p_workspace_slug: state.cloud.workspaceSlug,
@@ -560,9 +819,12 @@
       });
       state.cloud.lastSyncedAt = payload.workspace ? payload.workspace.updatedAt : new Date().toISOString();
       render();
-      showToast("Cloud config pushed.");
+      if (!silent) showToast("Cloud config pushed.");
+      return true;
     } catch (error) {
+      if (silent) throw error;
       showToast(error.message);
+      return false;
     }
   }
 
@@ -651,6 +913,59 @@
     return machine.agentMachineId || `${machine.host}:${machine.port}`;
   }
 
+  function readAutoPairPayload() {
+    const params = new URLSearchParams(location.hash.replace(/^#/, ""));
+    const encoded = params.get("openxPair");
+    if (!encoded) return null;
+    return decodeBase64UrlJson(encoded);
+  }
+
+  function clearAutoPairHash() {
+    history.replaceState(null, "", `${location.pathname}${location.search}`);
+  }
+
+  function decodeBase64UrlJson(value) {
+    const base64 = value.replaceAll("-", "+").replaceAll("_", "/");
+    const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+
+  function upsertAutoPairedMachine(payload) {
+    if (!payload.accessToken) throw new Error("Auto pair link is missing an access token.");
+    const host = String(payload.host || "localhost").trim();
+    const pairedPort = Number(payload.port || 8787);
+    if (!host || !pairedPort) throw new Error("Auto pair link is missing agent host or port.");
+    const agentMachineId = payload.machineId || payload.agentMachineId || null;
+    const existing = state.machines.find((machine) => (
+      (agentMachineId && machine.agentMachineId === agentMachineId) ||
+      (machine.host === host && Number(machine.port) === pairedPort)
+    ));
+    if (existing) {
+      Object.assign(existing, {
+        name: payload.machineName || existing.name || "OpenX Agent",
+        host,
+        port: pairedPort,
+        agentMachineId,
+        token: payload.accessToken,
+        folders: existing.folders || []
+      });
+      return existing;
+    }
+    const machine = {
+      id: crypto.randomUUID(),
+      name: payload.machineName || "OpenX Agent",
+      host,
+      port: pairedPort,
+      agentMachineId,
+      token: payload.accessToken,
+      folders: []
+    };
+    state.machines.push(machine);
+    return machine;
+  }
+
   function openFileTypesDialog() {
     editingFileTypes = state.fileTypes.map((item) => ({ ...item }));
     el.newFileTypeInput.value = "";
@@ -736,8 +1051,20 @@
     return `http://${machine.host}:${machine.port}${path}`;
   }
 
+  function fetchWithTimeout(url, options = {}, timeoutMs = 5000) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(url, { ...options, signal: controller.signal })
+      .finally(() => clearTimeout(timeout));
+  }
+
   function authHeaders(machine) {
     return { Authorization: `Bearer ${machine.token}` };
+  }
+
+  function setSidebarOpen(open) {
+    sidebarOpen = Boolean(open);
+    renderShell();
   }
 
   function ensureFileTypeState(targetState) {
@@ -760,14 +1087,20 @@
   }
 
   function ensureCloudState(targetState) {
+    const existingCloud = targetState.cloud || {};
     targetState.cloud = {
-      supabaseUrl: "",
-      anonKey: "",
-      workspaceSlug: "",
-      workspaceName: "",
-      syncKey: "",
-      lastSyncedAt: "",
-      ...(targetState.cloud || {})
+      supabaseUrl: existingCloud.supabaseUrl || DEFAULT_CLOUD.supabaseUrl,
+      anonKey: existingCloud.anonKey || DEFAULT_CLOUD.anonKey,
+      workspaceSlug: existingCloud.workspaceSlug || "",
+      workspaceName: existingCloud.workspaceName || "",
+      syncKey: existingCloud.syncKey || "",
+      lastSyncedAt: existingCloud.lastSyncedAt || ""
+    };
+  }
+
+  function ensureUiState(targetState) {
+    targetState.ui = {
+      cloudAdvancedOpen: false
     };
   }
 

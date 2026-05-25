@@ -8,13 +8,16 @@
   </head>
   <body>
     <div class="shell">
-      <aside class="sidebar">
+      <button id="menuBtn" class="menu-button" type="button" aria-controls="sidebar" aria-expanded="false">Menu</button>
+      <div id="sidebarOverlay" class="sidebar-overlay" hidden></div>
+      <aside id="sidebar" class="sidebar" aria-label="Machines">
         <div class="brand">
           <div class="mark">OX</div>
           <div>
             <h1>OpenX Mirror</h1>
             <p>LAN static report browser</p>
           </div>
+          <button id="sidebarCloseBtn" class="icon-button sidebar-close" type="button" aria-label="Close machine menu">x</button>
         </div>
 
         <div class="sidebar-actions">
@@ -47,13 +50,15 @@
               <p>Sync machines, folders, and file filters across devices.</p>
             </div>
             <div class="toolbar-actions">
+              <button id="apiKeyBtn" class="primary">Enter API Key</button>
               <button id="pullCloudBtn">Pull</button>
-              <button id="pushCloudBtn" class="primary">Push</button>
+              <button id="pushCloudBtn">Push</button>
+              <button id="cloudAdvancedBtn" type="button" aria-controls="cloudAdvancedPanel" aria-expanded="false">Advanced</button>
             </div>
           </div>
-          <div class="cloud-grid">
+          <div id="cloudAdvancedPanel" class="cloud-grid" hidden>
             <label>Supabase URL <input id="cloudUrlInput" placeholder="https://project-ref.supabase.co"></label>
-            <label>Anon Key <input id="cloudAnonKeyInput" type="password" placeholder="Supabase anon key"></label>
+            <label>Publishable / Anon Key <input id="cloudAnonKeyInput" type="password" placeholder="Supabase publishable or anon key"></label>
             <label>Workspace <input id="cloudWorkspaceInput" placeholder="openx-home"></label>
             <label>Sync API Key <input id="cloudSyncKeyInput" type="password" placeholder="Admin key or API key"></label>
             <label>Name <input id="cloudWorkspaceNameInput" placeholder="Home Lab"></label>
@@ -108,8 +113,33 @@
         <label>Host <input id="machineHostInput" required placeholder="192.168.1.20"></label>
         <label>Port <input id="machinePortInput" required type="number" min="1" max="65535" value="8787"></label>
         <menu>
-          <button value="cancel">Cancel</button>
+          <button value="cancel" formnovalidate>Cancel</button>
           <button id="saveMachineBtn" value="default" class="primary">Save</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="apiKeyDialog">
+      <form method="dialog" id="apiKeyForm" autocomplete="off">
+        <h3>Cloud API Key</h3>
+        <p>Enter a workspace and API key to load on iPad, or save this desktop after pairing an agent.</p>
+        <label>Workspace <input id="apiWorkspaceInput" required list="publicWorkspaceOptions" autocomplete="off" placeholder="public1"></label>
+        <datalist id="publicWorkspaceOptions">
+          <option value="public1"></option>
+          <option value="public2"></option>
+          <option value="public3"></option>
+          <option value="fighttechvn"></option>
+          <option value="trunghieu"></option>
+        </datalist>
+        <label>API Key <input id="apiKeyInput" required type="password" autocomplete="off" autofocus placeholder="Workspace admin key or API key"></label>
+        <div class="cloud-grid compact">
+          <label>Supabase URL <input id="apiSupabaseUrlInput" required placeholder="https://project-ref.supabase.co"></label>
+          <label>Publishable / Anon Key <input id="apiAnonKeyInput" required type="password" placeholder="Supabase publishable key"></label>
+        </div>
+        <menu>
+          <button value="cancel" formnovalidate>Cancel</button>
+          <button id="saveDesktopToCloudBtn" type="button">Save This Desktop</button>
+          <button id="loadCloudFromApiKeyBtn" value="default" class="primary">Load Cloud</button>
         </menu>
       </form>
     </dialog>
@@ -117,10 +147,10 @@
     <dialog id="pairDialog">
       <form method="dialog" id="pairForm">
         <h3>Pair Machine</h3>
-        <label>Pairing Code <input id="pairCodeInput" required placeholder="123-456"></label>
+        <label>Pairing Code <input id="pairCodeInput" required autocomplete="off" placeholder="123-456"></label>
         <label>Client Name <input id="clientNameInput" required value="OpenX Dashboard"></label>
         <menu>
-          <button value="cancel">Cancel</button>
+          <button value="cancel" formnovalidate>Cancel</button>
           <button id="submitPairBtn" value="default" class="primary">Pair</button>
         </menu>
       </form>
@@ -133,7 +163,7 @@
         <label>Absolute Path <input id="folderPathInput" required placeholder="/Volumes/Fightech/Projects/lunar-ios"></label>
         <label class="checkbox"><input id="folderRecursiveInput" type="checkbox" checked> Scan subfolders</label>
         <menu>
-          <button value="cancel">Cancel</button>
+          <button value="cancel" formnovalidate>Cancel</button>
           <button id="saveFolderBtn" value="default" class="primary">Save</button>
         </menu>
       </form>
@@ -148,7 +178,7 @@
           <button id="addFileTypeBtn" type="button">Add</button>
         </div>
         <menu>
-          <button value="cancel">Cancel</button>
+          <button value="cancel" formnovalidate>Cancel</button>
           <button id="saveFileTypesBtn" value="default" class="primary">Save</button>
         </menu>
       </form>
@@ -162,9 +192,9 @@
           <code id="installAgentCommand">npx openx-mirror agent --host 0.0.0.0 --port 8787</code>
           <button id="copyInstallAgentBtn" type="button">Copy</button>
         </div>
-        <p>After it starts, add the machine IP in this dashboard and pair with the code printed by the agent.</p>
+        <p>After it starts, open the auto-pair localhost link printed by the agent, or add the machine IP and pair with the printed code.</p>
         <menu>
-          <button value="cancel">Close</button>
+          <button value="cancel" formnovalidate>Close</button>
         </menu>
       </form>
     </dialog>

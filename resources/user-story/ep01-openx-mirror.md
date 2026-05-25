@@ -24,6 +24,8 @@ As a machine owner, I want the sharing machine to generate a short verification 
 - Dashboard submits host, port, pairing code, and client name.
 - Agent returns a long random access token after a valid pairing request.
 - Dashboard stores the token locally and uses it as a bearer token.
+- User can open a localhost auto-pair link from the agent to pair local or deployed dashboard without typing the code.
+- Auto-pair updates cloud config when cloud sync is already configured, without uploading the raw agent token.
 
 ## EP01.US003 Manage Shared Folders
 
@@ -59,6 +61,7 @@ As a machine owner, I want the agent to prevent path traversal and unauthorized 
 ### Acceptance Criteria
 
 - Every protected API requires `Authorization: Bearer <token>`.
+- Browser-opened static files use short-lived file tickets so links can open in a new tab.
 - File serving resolves requested paths against the canonical allowed folder.
 - Requests like `../secret.html` are rejected.
 - Non-allowed file types are rejected.
@@ -84,8 +87,13 @@ As a user with multiple devices, I want to sync OpenX dashboard configuration to
 ### Acceptance Criteria
 
 - User can configure Supabase URL, anon key, workspace slug, workspace name, and sync key.
+- User can enter only workspace and API key in the simple cloud dialog when the app has default Supabase project settings.
+- iPad users can load cloud config from the simple API key dialog.
+- Desktop users can save paired local agent metadata to the selected cloud workspace from the same API key dialog.
+- Sidebar machine navigation is hidden by default and can be opened or closed from a menu button.
 - User can push local config to cloud.
 - User can pull cloud config from another browser.
+- Supabase can seed public workspaces `public1`, `public2`, `public3`, `fighttechvn`, and `trunghieu`.
 - Cloud config includes machines, folders, and file type filters.
 - Agent bearer tokens are not uploaded in phase 1.
 - Pulling config preserves matching local tokens when they already exist in the browser.

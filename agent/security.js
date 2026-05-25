@@ -1,6 +1,27 @@
 const fs = require("fs");
 const path = require("path");
 
+const STATIC_FILE_EXTENSIONS = new Set([
+  ".html",
+  ".htm",
+  ".pdf",
+  ".txt",
+  ".md",
+  ".css",
+  ".js",
+  ".mjs",
+  ".json",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".svg",
+  ".ico",
+  ".woff",
+  ".woff2"
+]);
+
 function normalizeAllowedFolder(folderPath) {
   if (!folderPath || typeof folderPath !== "string") {
     throw new Error("Folder path is required.");
@@ -26,7 +47,7 @@ function resolveInside(rootPath, relativePath) {
 }
 
 function isStaticFile(fileName) {
-  return [".html", ".htm", ".pdf", ".txt", ".md"].includes(path.extname(fileName).toLowerCase());
+  return STATIC_FILE_EXTENSIONS.has(path.extname(fileName).toLowerCase());
 }
 
 module.exports = {

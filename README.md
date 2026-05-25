@@ -74,7 +74,16 @@ Local CLI test from this repository:
 node bin/openx.js agent --host 0.0.0.0 --port 8787
 ```
 
-The agent prints a pairing code. In the dashboard, add a machine with the host, port, and code. After pairing, add allowed folders by absolute path and scan them.
+The agent prints a pairing code plus two localhost auto-pair links:
+
+```text
+Auto pair local dashboard: http://localhost:8787/pair-dashboard?target=local
+Auto pair deployed dashboard: http://localhost:8787/pair-dashboard?target=deploy
+```
+
+Open the local link when using `http://localhost:8080`, or the deployed link when using GitHub Pages. The link is only accepted from localhost, pairs the agent automatically, and redirects back to the dashboard. If cloud sync is already configured in that browser, the dashboard pushes the updated machine/folder config after pairing. You can still pair manually by adding a machine with the host, port, and printed code.
+
+After pairing, add allowed folders by absolute path and scan them.
 
 The dashboard also has an `Install Agent` button that opens a copyable command dialog for users.
 
@@ -106,19 +115,37 @@ Run the schema once in Supabase SQL Editor:
 supabase/schema.sql
 ```
 
+Optional public workspaces can be seeded with:
+
+```text
+supabase/seed-public-workspaces.sql
+```
+
 Then open the dashboard and fill:
 
 ```text
 Supabase URL: https://<project-ref>.supabase.co
-Anon Key:     Supabase project anon key
+Anon Key:     Supabase project publishable or anon key
 Workspace:    openx-home
 Sync Key:     at least 12 characters
 Name:         optional display name
 ```
 
-Use `Push` to upload local config and `Pull` on another device to download it.
+Use `Enter API Key` for the simple iPad/desktop flow. Enter the workspace and API key, then choose `Load Cloud` on iPad or `Save This Desktop` after pairing a desktop agent.
 
-Phase 1 intentionally does not upload agent bearer tokens. Each browser still pairs with an agent locally before it can manage folders or open files.
+Seeded public workspaces use these intentionally public API keys:
+
+```text
+public1     openx-public-public1
+public2     openx-public-public2
+public3     openx-public-public3
+fighttechvn openx-public-fighttechvn
+trunghieu   openx-public-trunghieu
+```
+
+Use `Push` to upload local config and `Pull` on another device to download it when using the advanced cloud form.
+
+Phase 1 intentionally does not upload agent bearer tokens. Each browser still pairs with an agent locally before it can manage folders or open files. Localhost auto-pair updates cloud config when cloud sync is already configured, but it still keeps the raw agent token local to that browser.
 
 ## Admin Portal API Keys
 
@@ -147,6 +174,8 @@ It manages cloud sync API keys.
 - Pairing code expires after 5 minutes.
 - Pairing code is one-time use.
 - Paired clients receive bearer tokens.
+- Localhost auto-pair links are accepted only from loopback requests.
+- Static file tabs use short-lived file tickets instead of putting long-lived bearer tokens in URLs.
 - Agent only serves files under explicitly allowed folders.
 - Path traversal is blocked by canonical path checks.
 
