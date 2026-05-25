@@ -115,17 +115,35 @@ Run the schema once in Supabase SQL Editor:
 supabase/schema.sql
 ```
 
+Optional public workspaces can be seeded with:
+
+```text
+supabase/seed-public-workspaces.sql
+```
+
 Then open the dashboard and fill:
 
 ```text
 Supabase URL: https://<project-ref>.supabase.co
-Anon Key:     Supabase project anon key
+Anon Key:     Supabase project publishable or anon key
 Workspace:    openx-home
 Sync Key:     at least 12 characters
 Name:         optional display name
 ```
 
-Use `Push` to upload local config and `Pull` on another device to download it.
+Use `Enter API Key` for the simple iPad/desktop flow. Enter the workspace and API key, then choose `Load Cloud` on iPad or `Save This Desktop` after pairing a desktop agent.
+
+Seeded public workspaces use these intentionally public API keys:
+
+```text
+public1     openx-public-public1
+public2     openx-public-public2
+public3     openx-public-public3
+fighttechvn openx-public-fighttechvn
+trunghieu   openx-public-trunghieu
+```
+
+Use `Push` to upload local config and `Pull` on another device to download it when using the advanced cloud form.
 
 Phase 1 intentionally does not upload agent bearer tokens. Each browser still pairs with an agent locally before it can manage folders or open files. Localhost auto-pair updates cloud config when cloud sync is already configured, but it still keeps the raw agent token local to that browser.
 
