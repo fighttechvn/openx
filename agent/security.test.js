@@ -18,5 +18,7 @@ test("resolveInside blocks traversal outside allowed root", () => {
 test("isStaticFile allows static report types only", () => {
   assert.equal(isStaticFile("e2e.html"), true);
   assert.equal(isStaticFile("srs.pdf"), true);
+  assert.equal(isStaticFile("screenshots/home.png"), true);
+  assert.equal(isStaticFile("assets/app.js"), true);
   assert.equal(isStaticFile("token.env"), false);
 });
