@@ -60,6 +60,8 @@ EOF
 if git -C "$ROOT_DIR" ls-remote --exit-code --heads origin "$PAGES_BRANCH" >/dev/null 2>&1; then
   git -C "$ROOT_DIR" fetch origin "$PAGES_BRANCH"
   git -C "$ROOT_DIR" worktree add --force "$PAGES_WORKTREE" "origin/$PAGES_BRANCH"
+elif git -C "$ROOT_DIR" show-ref --verify --quiet "refs/heads/$PAGES_BRANCH"; then
+  git -C "$ROOT_DIR" worktree add --force "$PAGES_WORKTREE" "$PAGES_BRANCH"
 else
   git -C "$ROOT_DIR" worktree add --force --detach "$PAGES_WORKTREE"
   git -C "$PAGES_WORKTREE" switch --orphan "$PAGES_BRANCH"
