@@ -89,3 +89,16 @@ As a user with multiple devices, I want to sync OpenX dashboard configuration to
 - Cloud config includes machines, folders, and file type filters.
 - Agent bearer tokens are not uploaded in phase 1.
 - Pulling config preserves matching local tokens when they already exist in the browser.
+
+## EP01.US008 Manage Cloud Sync API Keys
+
+As an admin, I want to create and revoke API keys for cloud sync so that each device can sync configuration without sharing the workspace admin key.
+
+### Acceptance Criteria
+
+- Admin can enter workspace admin key and create a named API key.
+- API key is shown once after creation.
+- Supabase stores only the API key hash and prefix.
+- Admin can list API keys with active/revoked status.
+- Admin can revoke an API key.
+- Pull/Push accepts either the workspace admin key or an active API key.

@@ -98,6 +98,16 @@ Use `Push` to upload local config and `Pull` on another device to download it.
 
 Phase 1 intentionally does not upload agent bearer tokens. Each browser still pairs with an agent locally before it can manage folders or open files.
 
+## Admin Portal API Keys
+
+The dashboard includes an Admin Portal for cloud sync API keys.
+
+- The first `Sync Key` used to create a workspace is the workspace admin key.
+- Use the admin key in `Admin Key` to create/list/revoke API keys.
+- Generated API keys are shown once and stored in Supabase as hashes only.
+- Use generated API keys as `Sync API Key` on iPad or other devices.
+- Revoked API keys can no longer pull or push cloud config.
+
 ## Security Model
 
 - Pairing code expires after 5 minutes.

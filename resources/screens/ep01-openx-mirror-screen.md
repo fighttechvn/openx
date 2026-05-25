@@ -12,6 +12,10 @@
 | Machines                      | Cloud Sync                         [Pull] [Push] |
 | + Mac Mini Dev     Paired     | Supabase URL / anon key / workspace / sync key   |
 | + Windows QA      Not paired  +-------------------------------------------------+
+|                              | Admin Portal                    [Refresh Keys]   |
+|                              | Admin Key / New API Key Name / [Create API Key]  |
+|                              | + iPad Safari     ox_live_abcd...     [Revoke]   |
+|                              +-------------------------------------------------+
 |                              | LAN Devices                                     |
 |                              | + MacBook Air                                  |
 |                              |   192.168.1.24:8787                  [Add]      |

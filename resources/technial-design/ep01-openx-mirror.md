@@ -74,6 +74,20 @@ Supabase openx_cloud_workspaces
 }
 ```
 
+### Cloud API Key
+
+```json
+{
+  "id": "uuid",
+  "workspaceId": "uuid",
+  "name": "iPad Safari",
+  "prefix": "ox_live_abcd...",
+  "createdAt": "2026-05-25T00:00:00Z",
+  "lastUsedAt": null,
+  "revokedAt": null
+}
+```
+
 ### Agent State
 
 ```json
@@ -163,6 +177,9 @@ POST /revoke
 ```text
 POST /rest/v1/rpc/openx_pull_config
 POST /rest/v1/rpc/openx_push_config
+POST /rest/v1/rpc/openx_create_api_key
+POST /rest/v1/rpc/openx_list_api_keys
+POST /rest/v1/rpc/openx_revoke_api_key
 ```
 
 ## Pairing Flow
@@ -208,6 +225,17 @@ POST /rest/v1/rpc/openx_push_config
 
 Agent bearer tokens are intentionally excluded from cloud config in phase 1.
 
+## Cloud API Key Flow
+
+1. Admin creates a workspace by pushing config with the original sync key.
+2. That original sync key acts as the workspace admin key.
+3. Admin opens Admin Portal and enters the admin key.
+4. Dashboard calls `openx_create_api_key`.
+5. Supabase generates an `ox_live_...` API key and stores only its SHA-256 hash plus prefix.
+6. Dashboard shows the raw key once.
+7. Other devices use the API key as `Sync API Key` for Pull/Push.
+8. Admin can list and revoke keys.
+
 ## LAN Discovery Flow
 
 1. User selects an already paired local agent.
@@ -230,6 +258,7 @@ Agent bearer tokens are intentionally excluded from cloud config in phase 1.
 - LAN discovery requires an existing paired agent and does not grant access to discovered machines.
 - Supabase direct table access is revoked from `anon` and `authenticated`.
 - Supabase access uses RPC functions that verify the workspace sync key.
+- Supabase API keys are hashed at rest and can be revoked.
 - Cloud sync does not store agent bearer tokens in phase 1.
 
 ## Limitations

@@ -106,6 +106,19 @@ npm test
 9. Confirm agent tokens are not present until the second browser pairs locally.
 10. Pull again after local pairing and confirm matching local tokens are preserved.
 
+### Cloud API Keys
+
+1. Create a workspace by pushing config with an admin sync key.
+2. Enter the same value as `Admin Key`.
+3. Create a named API key.
+4. Confirm the raw API key is shown once.
+5. Replace `Sync API Key` with the generated key.
+6. Pull and push config successfully.
+7. Refresh API keys and confirm the key appears active.
+8. Revoke the key.
+9. Attempt Pull/Push with the revoked key.
+10. Expect Supabase to reject the request.
+
 ## Dashboard Manual Tests
 
 ### Machine CRUD

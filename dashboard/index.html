@@ -51,11 +51,31 @@
             <label>Supabase URL <input id="cloudUrlInput" placeholder="https://project-ref.supabase.co"></label>
             <label>Anon Key <input id="cloudAnonKeyInput" type="password" placeholder="Supabase anon key"></label>
             <label>Workspace <input id="cloudWorkspaceInput" placeholder="openx-home"></label>
-            <label>Sync Key <input id="cloudSyncKeyInput" type="password" placeholder="At least 12 characters"></label>
+            <label>Sync API Key <input id="cloudSyncKeyInput" type="password" placeholder="Admin key or API key"></label>
             <label>Name <input id="cloudWorkspaceNameInput" placeholder="Home Lab"></label>
             <button id="saveCloudBtn">Save Cloud Settings</button>
           </div>
           <p id="cloudSyncMeta" class="cloud-meta">Cloud sync is not configured.</p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Admin Portal</h3>
+              <p>Create and revoke API keys for cloud sync.</p>
+            </div>
+            <button id="refreshApiKeysBtn">Refresh Keys</button>
+          </div>
+          <div class="cloud-grid">
+            <label>Admin Key <input id="cloudAdminKeyInput" type="password" placeholder="Workspace admin key"></label>
+            <label>New API Key Name <input id="newApiKeyNameInput" placeholder="iPad Safari"></label>
+            <button id="createApiKeyBtn" class="primary">Create API Key</button>
+          </div>
+          <div id="generatedApiKeyBox" class="secret-box" hidden>
+            <label>Generated API Key <input id="generatedApiKeyInput" readonly></label>
+            <p>This key is shown once. Use it as the Sync API Key on another device.</p>
+          </div>
+          <div id="apiKeyList" class="api-key-list empty">No API keys loaded.</div>
         </section>
 
         <section class="panel">
