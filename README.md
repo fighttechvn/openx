@@ -76,6 +76,8 @@ node bin/openx.js agent --host 0.0.0.0 --port 8787
 
 The agent prints a pairing code. In the dashboard, add a machine with the host, port, and code. After pairing, add allowed folders by absolute path and scan them.
 
+The dashboard also has an `Install Agent` button that opens a copyable command dialog for users.
+
 Defaults:
 
 ```text
@@ -120,7 +122,19 @@ Phase 1 intentionally does not upload agent bearer tokens. Each browser still pa
 
 ## Admin Portal API Keys
 
-The dashboard includes an Admin Portal for cloud sync API keys.
+The Admin Portal is available at:
+
+```text
+https://fighttechvn.github.io/openx/admin/
+```
+
+For local development:
+
+```text
+http://localhost:8080/admin/
+```
+
+It manages cloud sync API keys.
 
 - The first `Sync Key` used to create a workspace is the workspace admin key.
 - Use the admin key in `Admin Key` to create/list/revoke API keys.

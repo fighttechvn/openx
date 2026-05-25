@@ -17,7 +17,11 @@
           </div>
         </div>
 
-        <button id="addMachineBtn" class="primary">Add Machine</button>
+        <div class="sidebar-actions">
+          <button id="addMachineBtn" class="primary">Add Machine</button>
+          <button id="installAgentBtn">Install Agent</button>
+          <a class="nav-button" href="admin/">Admin</a>
+        </div>
         <div id="machineList" class="machine-list"></div>
       </aside>
 
@@ -56,26 +60,6 @@
             <button id="saveCloudBtn">Save Cloud Settings</button>
           </div>
           <p id="cloudSyncMeta" class="cloud-meta">Cloud sync is not configured.</p>
-        </section>
-
-        <section class="panel">
-          <div class="panel-header">
-            <div>
-              <h3>Admin Portal</h3>
-              <p>Create and revoke API keys for cloud sync.</p>
-            </div>
-            <button id="refreshApiKeysBtn">Refresh Keys</button>
-          </div>
-          <div class="cloud-grid">
-            <label>Admin Key <input id="cloudAdminKeyInput" type="password" placeholder="Workspace admin key"></label>
-            <label>New API Key Name <input id="newApiKeyNameInput" placeholder="iPad Safari"></label>
-            <button id="createApiKeyBtn" class="primary">Create API Key</button>
-          </div>
-          <div id="generatedApiKeyBox" class="secret-box" hidden>
-            <label>Generated API Key <input id="generatedApiKeyInput" readonly></label>
-            <p>This key is shown once. Use it as the Sync API Key on another device.</p>
-          </div>
-          <div id="apiKeyList" class="api-key-list empty">No API keys loaded.</div>
         </section>
 
         <section class="panel">
@@ -166,6 +150,21 @@
         <menu>
           <button value="cancel">Cancel</button>
           <button id="saveFileTypesBtn" value="default" class="primary">Save</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="installAgentDialog">
+      <form method="dialog">
+        <h3>Install Agent</h3>
+        <p>Run this command on each machine that will share local folders.</p>
+        <div class="command-box">
+          <code id="installAgentCommand">npx openx-mirror agent --host 0.0.0.0 --port 8787</code>
+          <button id="copyInstallAgentBtn" type="button">Copy</button>
+        </div>
+        <p>After it starts, add the machine IP in this dashboard and pair with the code printed by the agent.</p>
+        <menu>
+          <button value="cancel">Close</button>
         </menu>
       </form>
     </dialog>

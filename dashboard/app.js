@@ -9,7 +9,6 @@
   let currentResults = [];
   let lanDevices = [];
   let editingFileTypes = [];
-  let generatedCloudApiKey = "";
 
   const el = {
     machineList: document.getElementById("machineList"),
@@ -20,11 +19,6 @@
     cloudWorkspaceInput: document.getElementById("cloudWorkspaceInput"),
     cloudWorkspaceNameInput: document.getElementById("cloudWorkspaceNameInput"),
     cloudSyncKeyInput: document.getElementById("cloudSyncKeyInput"),
-    cloudAdminKeyInput: document.getElementById("cloudAdminKeyInput"),
-    newApiKeyNameInput: document.getElementById("newApiKeyNameInput"),
-    generatedApiKeyBox: document.getElementById("generatedApiKeyBox"),
-    generatedApiKeyInput: document.getElementById("generatedApiKeyInput"),
-    apiKeyList: document.getElementById("apiKeyList"),
     cloudSyncMeta: document.getElementById("cloudSyncMeta"),
     folderList: document.getElementById("folderList"),
     resultList: document.getElementById("resultList"),
@@ -50,7 +44,9 @@
     fileTypesDialog: document.getElementById("fileTypesDialog"),
     fileTypesForm: document.getElementById("fileTypesForm"),
     fileTypeEditorList: document.getElementById("fileTypeEditorList"),
-    newFileTypeInput: document.getElementById("newFileTypeInput")
+    newFileTypeInput: document.getElementById("newFileTypeInput"),
+    installAgentDialog: document.getElementById("installAgentDialog"),
+    installAgentCommand: document.getElementById("installAgentCommand")
   };
 
   document.getElementById("addMachineBtn").addEventListener("click", openNewMachineDialog);
@@ -62,9 +58,9 @@
   document.getElementById("saveCloudBtn").addEventListener("click", saveCloudSettings);
   document.getElementById("pullCloudBtn").addEventListener("click", pullCloudConfig);
   document.getElementById("pushCloudBtn").addEventListener("click", pushCloudConfig);
-  document.getElementById("createApiKeyBtn").addEventListener("click", createCloudApiKey);
-  document.getElementById("refreshApiKeysBtn").addEventListener("click", listCloudApiKeys);
   document.getElementById("addFolderBtn").addEventListener("click", openNewFolderDialog);
+  document.getElementById("installAgentBtn").addEventListener("click", openInstallAgentDialog);
+  document.getElementById("copyInstallAgentBtn").addEventListener("click", copyInstallAgentCommand);
   document.getElementById("manageFileTypesBtn").addEventListener("click", openFileTypesDialog);
   document.getElementById("addFileTypeBtn").addEventListener("click", addEditingFileType);
   el.searchInput.addEventListener("input", renderResults);
@@ -100,7 +96,6 @@
     renderMachines();
     renderActiveMachine();
     renderCloudSettings();
-    renderApiKeys();
     renderLanDevices();
     renderFolders();
     renderFileTypeTags();
@@ -150,43 +145,12 @@
     el.cloudWorkspaceInput.value = state.cloud.workspaceSlug || "";
     el.cloudWorkspaceNameInput.value = state.cloud.workspaceName || "";
     el.cloudSyncKeyInput.value = state.cloud.syncKey || "";
-    el.cloudAdminKeyInput.value = state.cloud.adminKey || "";
-    el.newApiKeyNameInput.value = state.cloud.newApiKeyName || "";
-    el.generatedApiKeyInput.value = generatedCloudApiKey;
-    el.generatedApiKeyBox.hidden = !generatedCloudApiKey;
     if (state.cloud.lastSyncedAt) {
       el.cloudSyncMeta.textContent = `Last cloud sync: ${new Date(state.cloud.lastSyncedAt).toLocaleString()}`;
     } else if (isCloudConfigured()) {
       el.cloudSyncMeta.textContent = "Cloud sync is configured.";
     } else {
       el.cloudSyncMeta.textContent = "Cloud sync is not configured.";
-    }
-  }
-
-  function renderApiKeys() {
-    el.apiKeyList.innerHTML = "";
-    if (!state.cloud.apiKeys.length) {
-      el.apiKeyList.className = "api-key-list empty";
-      el.apiKeyList.textContent = "No API keys loaded.";
-      return;
-    }
-    el.apiKeyList.className = "api-key-list";
-    for (const apiKey of state.cloud.apiKeys) {
-      const row = document.createElement("div");
-      row.className = "api-key-row";
-      const revoked = Boolean(apiKey.revokedAt);
-      row.innerHTML = `
-        <div>
-          <strong>${escapeHtml(apiKey.name)}</strong>
-          <div class="api-key-meta">${escapeHtml(apiKey.prefix)}... · created ${escapeHtml(formatDate(apiKey.createdAt))}</div>
-        </div>
-        <div class="row-actions">
-          <span class="status ${revoked ? "" : "paired"}">${revoked ? "Revoked" : "Active"}</span>
-          <button data-action="revoke" class="danger" ${revoked ? "disabled" : ""}>Revoke</button>
-        </div>
-      `;
-      row.querySelector('[data-action="revoke"]').addEventListener("click", () => revokeCloudApiKey(apiKey.id));
-      el.apiKeyList.appendChild(row);
     }
   }
 
@@ -563,59 +527,6 @@
     showToast("Cloud settings saved.");
   }
 
-  async function createCloudApiKey() {
-    saveCloudSettings();
-    if (!isCloudAdminConfigured()) return showToast("Complete cloud admin settings first.");
-    try {
-      const payload = await callSupabaseRpc("openx_create_api_key", {
-        p_workspace_slug: state.cloud.workspaceSlug,
-        p_admin_key: state.cloud.adminKey,
-        p_key_name: state.cloud.newApiKeyName || "OpenX API Key"
-      });
-      generatedCloudApiKey = payload.apiKey;
-      state.cloud.apiKeys = [payload.key, ...state.cloud.apiKeys.filter((item) => item.id !== payload.key.id)];
-      render();
-      showToast("API key created.");
-    } catch (error) {
-      showToast(error.message);
-    }
-  }
-
-  async function listCloudApiKeys() {
-    saveCloudSettings();
-    if (!isCloudAdminConfigured()) return showToast("Complete cloud admin settings first.");
-    try {
-      const payload = await callSupabaseRpc("openx_list_api_keys", {
-        p_workspace_slug: state.cloud.workspaceSlug,
-        p_admin_key: state.cloud.adminKey
-      });
-      state.cloud.apiKeys = Array.isArray(payload) ? payload : [];
-      generatedCloudApiKey = "";
-      render();
-      showToast("API keys loaded.");
-    } catch (error) {
-      showToast(error.message);
-    }
-  }
-
-  async function revokeCloudApiKey(keyId) {
-    saveCloudSettings();
-    if (!isCloudAdminConfigured()) return showToast("Complete cloud admin settings first.");
-    if (!confirm("Revoke this API key? Devices using it will stop syncing.")) return;
-    try {
-      const payload = await callSupabaseRpc("openx_revoke_api_key", {
-        p_workspace_slug: state.cloud.workspaceSlug,
-        p_admin_key: state.cloud.adminKey,
-        p_key_id: keyId
-      });
-      state.cloud.apiKeys = Array.isArray(payload) ? payload : [];
-      render();
-      showToast("API key revoked.");
-    } catch (error) {
-      showToast(error.message);
-    }
-  }
-
   async function pullCloudConfig() {
     saveCloudSettings();
     if (!isCloudConfigured()) return showToast("Complete cloud settings first.");
@@ -679,9 +590,7 @@
       anonKey: el.cloudAnonKeyInput.value.trim(),
       workspaceSlug: el.cloudWorkspaceInput.value.trim().toLowerCase(),
       workspaceName: el.cloudWorkspaceNameInput.value.trim(),
-      syncKey: el.cloudSyncKeyInput.value,
-      adminKey: el.cloudAdminKeyInput.value,
-      newApiKeyName: el.newApiKeyNameInput.value.trim()
+      syncKey: el.cloudSyncKeyInput.value
     };
   }
 
@@ -692,16 +601,6 @@
       state.cloud.workspaceSlug &&
       state.cloud.syncKey &&
       state.cloud.syncKey.length >= 12
-    );
-  }
-
-  function isCloudAdminConfigured() {
-    return Boolean(
-      state.cloud.supabaseUrl &&
-      state.cloud.anonKey &&
-      state.cloud.workspaceSlug &&
-      state.cloud.adminKey &&
-      state.cloud.adminKey.length >= 12
     );
   }
 
@@ -800,6 +699,20 @@
     renderFileTypeEditor();
   }
 
+  function openInstallAgentDialog() {
+    el.installAgentDialog.showModal();
+  }
+
+  async function copyInstallAgentCommand() {
+    const command = el.installAgentCommand.textContent;
+    try {
+      await navigator.clipboard.writeText(command);
+      showToast("Install command copied.");
+    } catch (_error) {
+      showToast(command);
+    }
+  }
+
   function saveFileTypes(event) {
     event.preventDefault();
     const normalized = [];
@@ -853,18 +766,9 @@
       workspaceSlug: "",
       workspaceName: "",
       syncKey: "",
-      adminKey: "",
-      newApiKeyName: "",
-      apiKeys: [],
       lastSyncedAt: "",
       ...(targetState.cloud || {})
     };
-    if (!Array.isArray(targetState.cloud.apiKeys)) targetState.cloud.apiKeys = [];
-  }
-
-  function formatDate(value) {
-    if (!value) return "never";
-    return new Date(value).toLocaleString();
   }
 
   function extensionOf(filePath) {

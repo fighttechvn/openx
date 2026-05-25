@@ -7,15 +7,12 @@
 | OX OpenX Mirror               | Selected Machine                                |
 | LAN static report browser     | Mac Mini Dev                                    |
 |                              | 192.168.1.20:8787 - paired                      |
-| [Add Machine]                 |              [Pair] [Scan LAN] [Check] [Delete] |
+| [Add Machine] [Install Agent] |              [Pair] [Scan LAN] [Check] [Delete] |
+| [Admin]                       |                                                 |
 |                              +-------------------------------------------------+
 | Machines                      | Cloud Sync                         [Pull] [Push] |
 | + Mac Mini Dev     Paired     | Supabase URL / anon key / workspace / sync key   |
 | + Windows QA      Not paired  +-------------------------------------------------+
-|                              | Admin Portal                    [Refresh Keys]   |
-|                              | Admin Key / New API Key Name / [Create API Key]  |
-|                              | + iPad Safari     ox_live_abcd...     [Revoke]   |
-|                              +-------------------------------------------------+
 |                              | LAN Devices                                     |
 |                              | + MacBook Air                                  |
 |                              |   192.168.1.24:8787                  [Add]      |
@@ -38,6 +35,7 @@
 
 - Sidebar machine list.
 - Machine add dialog.
+- Install agent dialog.
 - Pairing dialog.
 - Active machine toolbar.
 - LAN device discovery panel.
@@ -70,6 +68,7 @@
 - Add machine.
 - Select machine.
 - Pair machine.
+- Open install agent guide.
 - Check machine health.
 - Scan LAN.
 - Add discovered machine.

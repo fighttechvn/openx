@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OpenX Admin</title>
+    <link rel="stylesheet" href="../styles.css">
+  </head>
+  <body>
+    <div class="shell admin-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="mark">OX</div>
+          <div>
+            <h1>OpenX Admin</h1>
+            <p>Cloud sync key management</p>
+          </div>
+        </div>
+
+        <div class="sidebar-actions">
+          <a class="nav-button primary" href="../">Dashboard</a>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <section class="toolbar">
+          <div>
+            <h2>Admin Portal</h2>
+            <p>Create API keys for iPad, desktop browsers, and other sync clients.</p>
+          </div>
+          <div class="toolbar-actions">
+            <button id="refreshApiKeysBtn">Refresh Keys</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Cloud Workspace</h3>
+              <p>Use the same Supabase project and workspace as the dashboard.</p>
+            </div>
+            <button id="saveCloudBtn">Save Settings</button>
+          </div>
+          <div class="cloud-grid">
+            <label>Supabase URL <input id="cloudUrlInput" placeholder="https://project-ref.supabase.co"></label>
+            <label>Anon Key <input id="cloudAnonKeyInput" type="password" placeholder="Supabase anon key"></label>
+            <label>Workspace <input id="cloudWorkspaceInput" placeholder="openx-home"></label>
+            <label>Admin Key <input id="cloudAdminKeyInput" type="password" placeholder="Workspace admin key"></label>
+          </div>
+          <p id="cloudSyncMeta" class="cloud-meta">Admin settings are not configured.</p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>API Keys</h3>
+              <p>Generated keys are shown once. Use them as Sync API Key on other devices.</p>
+            </div>
+          </div>
+          <div class="cloud-grid">
+            <label>New API Key Name <input id="newApiKeyNameInput" placeholder="iPad Safari"></label>
+            <button id="createApiKeyBtn" class="primary">Create API Key</button>
+          </div>
+          <div id="generatedApiKeyBox" class="secret-box" hidden>
+            <label>Generated API Key <input id="generatedApiKeyInput" readonly></label>
+            <button id="copyGeneratedApiKeyBtn" type="button">Copy Key</button>
+            <p>This key is shown once. Store it before refreshing this page.</p>
+          </div>
+          <div id="apiKeyList" class="api-key-list empty">No API keys loaded.</div>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" role="status"></div>
+    <script src="admin.js"></script>
+  </body>
+</html>
