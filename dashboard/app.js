@@ -2,6 +2,7 @@
   const STORAGE_KEY = "openx-mirror-state-v1";
   const state = loadState();
   ensureFileTypeState(state);
+  ensureCloudState(state);
   let activeMachineId = state.activeMachineId || null;
   let editingMachineId = null;
   let editingFolderId = null;
@@ -13,6 +14,12 @@
     machineList: document.getElementById("machineList"),
     activeMachineName: document.getElementById("activeMachineName"),
     activeMachineMeta: document.getElementById("activeMachineMeta"),
+    cloudUrlInput: document.getElementById("cloudUrlInput"),
+    cloudAnonKeyInput: document.getElementById("cloudAnonKeyInput"),
+    cloudWorkspaceInput: document.getElementById("cloudWorkspaceInput"),
+    cloudWorkspaceNameInput: document.getElementById("cloudWorkspaceNameInput"),
+    cloudSyncKeyInput: document.getElementById("cloudSyncKeyInput"),
+    cloudSyncMeta: document.getElementById("cloudSyncMeta"),
     folderList: document.getElementById("folderList"),
     resultList: document.getElementById("resultList"),
     fileTypeTags: document.getElementById("fileTypeTags"),
@@ -46,6 +53,9 @@
   document.getElementById("scanLanBtn").addEventListener("click", scanLan);
   document.getElementById("healthBtn").addEventListener("click", checkHealth);
   document.getElementById("deleteMachineBtn").addEventListener("click", deleteActiveMachine);
+  document.getElementById("saveCloudBtn").addEventListener("click", saveCloudSettings);
+  document.getElementById("pullCloudBtn").addEventListener("click", pullCloudConfig);
+  document.getElementById("pushCloudBtn").addEventListener("click", pushCloudConfig);
   document.getElementById("addFolderBtn").addEventListener("click", openNewFolderDialog);
   document.getElementById("manageFileTypesBtn").addEventListener("click", openFileTypesDialog);
   document.getElementById("addFileTypeBtn").addEventListener("click", addEditingFileType);
@@ -79,6 +89,7 @@
   function render() {
     renderMachines();
     renderActiveMachine();
+    renderCloudSettings();
     renderLanDevices();
     renderFolders();
     renderFileTypeTags();
@@ -120,6 +131,21 @@
     }
     el.activeMachineName.textContent = machine.name;
     el.activeMachineMeta.textContent = `${machine.host}:${machine.port} - ${machine.token ? "paired" : "not paired"}`;
+  }
+
+  function renderCloudSettings() {
+    el.cloudUrlInput.value = state.cloud.supabaseUrl || "";
+    el.cloudAnonKeyInput.value = state.cloud.anonKey || "";
+    el.cloudWorkspaceInput.value = state.cloud.workspaceSlug || "";
+    el.cloudWorkspaceNameInput.value = state.cloud.workspaceName || "";
+    el.cloudSyncKeyInput.value = state.cloud.syncKey || "";
+    if (state.cloud.lastSyncedAt) {
+      el.cloudSyncMeta.textContent = `Last cloud sync: ${new Date(state.cloud.lastSyncedAt).toLocaleString()}`;
+    } else if (isCloudConfigured()) {
+      el.cloudSyncMeta.textContent = "Cloud sync is configured.";
+    } else {
+      el.cloudSyncMeta.textContent = "Cloud sync is not configured.";
+    }
   }
 
   function renderFolders() {
@@ -484,6 +510,141 @@
     showToast("Machine added. Pair it to manage folders.");
   }
 
+  function saveCloudSettings() {
+    const cloud = readCloudInputs();
+    if (cloud.workspaceSlug && !/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(cloud.workspaceSlug)) {
+      return showToast("Workspace must use lowercase letters, numbers, and dashes.");
+    }
+    state.cloud = { ...state.cloud, ...cloud };
+    renderCloudSettings();
+    persist();
+    showToast("Cloud settings saved.");
+  }
+
+  async function pullCloudConfig() {
+    saveCloudSettings();
+    if (!isCloudConfigured()) return showToast("Complete cloud settings first.");
+    try {
+      const payload = await callSupabaseRpc("openx_pull_config", {
+        p_workspace_slug: state.cloud.workspaceSlug,
+        p_sync_key: state.cloud.syncKey
+      });
+      if (!payload.exists) {
+        showToast("Cloud workspace is empty. Push local config first.");
+        return;
+      }
+      applyCloudConfig(payload.config || {});
+      state.cloud.lastSyncedAt = new Date().toISOString();
+      render();
+      showToast("Cloud config pulled.");
+    } catch (error) {
+      showToast(error.message);
+    }
+  }
+
+  async function pushCloudConfig() {
+    saveCloudSettings();
+    if (!isCloudConfigured()) return showToast("Complete cloud settings first.");
+    try {
+      const payload = await callSupabaseRpc("openx_push_config", {
+        p_workspace_slug: state.cloud.workspaceSlug,
+        p_sync_key: state.cloud.syncKey,
+        p_workspace_name: state.cloud.workspaceName || null,
+        p_config: buildCloudConfig()
+      });
+      state.cloud.lastSyncedAt = payload.workspace ? payload.workspace.updatedAt : new Date().toISOString();
+      render();
+      showToast("Cloud config pushed.");
+    } catch (error) {
+      showToast(error.message);
+    }
+  }
+
+  async function callSupabaseRpc(functionName, body) {
+    const url = `${state.cloud.supabaseUrl.replace(/\/$/, "")}/rest/v1/rpc/${functionName}`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        apikey: state.cloud.anonKey,
+        Authorization: `Bearer ${state.cloud.anonKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.message || data.error || `Supabase ${functionName} failed.`);
+    }
+    return data;
+  }
+
+  function readCloudInputs() {
+    return {
+      supabaseUrl: el.cloudUrlInput.value.trim().replace(/\/$/, ""),
+      anonKey: el.cloudAnonKeyInput.value.trim(),
+      workspaceSlug: el.cloudWorkspaceInput.value.trim().toLowerCase(),
+      workspaceName: el.cloudWorkspaceNameInput.value.trim(),
+      syncKey: el.cloudSyncKeyInput.value
+    };
+  }
+
+  function isCloudConfigured() {
+    return Boolean(
+      state.cloud.supabaseUrl &&
+      state.cloud.anonKey &&
+      state.cloud.workspaceSlug &&
+      state.cloud.syncKey &&
+      state.cloud.syncKey.length >= 12
+    );
+  }
+
+  function buildCloudConfig() {
+    return {
+      version: 1,
+      machines: state.machines.map((machine) => ({
+        id: machine.id,
+        name: machine.name,
+        host: machine.host,
+        port: machine.port,
+        agentMachineId: machine.agentMachineId || null,
+        folders: machine.folders || []
+      })),
+      fileTypes: state.fileTypes,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  function applyCloudConfig(config) {
+    const localTokenByKey = new Map();
+    for (const machine of state.machines) {
+      if (machine.token) localTokenByKey.set(machineKey(machine), machine.token);
+    }
+
+    state.machines = Array.isArray(config.machines) ? config.machines.map((machine) => ({
+      id: machine.id || crypto.randomUUID(),
+      name: machine.name || machine.host || "OpenX Agent",
+      host: machine.host || "",
+      port: Number(machine.port || 8787),
+      agentMachineId: machine.agentMachineId || null,
+      token: localTokenByKey.get(machineKey(machine)) || undefined,
+      folders: Array.isArray(machine.folders) ? machine.folders : []
+    })).filter((machine) => machine.host) : [];
+
+    if (Array.isArray(config.fileTypes)) {
+      state.fileTypes = config.fileTypes;
+      ensureFileTypeState(state);
+    }
+
+    if (!state.machines.some((machine) => machine.id === activeMachineId)) {
+      activeMachineId = state.machines[0] ? state.machines[0].id : null;
+      currentResults = [];
+    }
+  }
+
+  function machineKey(machine) {
+    return machine.agentMachineId || `${machine.host}:${machine.port}`;
+  }
+
   function openFileTypesDialog() {
     editingFileTypes = state.fileTypes.map((item) => ({ ...item }));
     el.newFileTypeInput.value = "";
@@ -576,6 +737,18 @@
       .filter((item) => item.extension);
     if (!targetState.fileTypes.length) targetState.fileTypes = defaults;
     if (!targetState.fileTypes.some((item) => item.enabled)) targetState.fileTypes[0].enabled = true;
+  }
+
+  function ensureCloudState(targetState) {
+    targetState.cloud = {
+      supabaseUrl: "",
+      anonKey: "",
+      workspaceSlug: "",
+      workspaceName: "",
+      syncKey: "",
+      lastSyncedAt: "",
+      ...(targetState.cloud || {})
+    };
   }
 
   function extensionOf(filePath) {

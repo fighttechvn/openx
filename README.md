@@ -74,6 +74,30 @@ AGENT_HOST=127.0.0.1 AGENT_PORT=8788 ./run-agent.sh
 
 After pairing with at least one local agent, click `Scan LAN` in the dashboard. The selected agent scans its local `/24` subnet for other OpenX Mirror agents listening on the same port. Discovered machines can be added to the dashboard, but each one still needs its own pairing code before folder access is allowed.
 
+## Cloud Sync Phase 1
+
+Cloud sync stores dashboard configuration in Supabase so iPad, Mac, and other browsers can share the same machine list, folder metadata, and file type filters.
+
+Run the schema once in Supabase SQL Editor:
+
+```text
+supabase/schema.sql
+```
+
+Then open the dashboard and fill:
+
+```text
+Supabase URL: https://<project-ref>.supabase.co
+Anon Key:     Supabase project anon key
+Workspace:    openx-home
+Sync Key:     at least 12 characters
+Name:         optional display name
+```
+
+Use `Push` to upload local config and `Pull` on another device to download it.
+
+Phase 1 intentionally does not upload agent bearer tokens. Each browser still pairs with an agent locally before it can manage folders or open files.
+
 ## Security Model
 
 - Pairing code expires after 5 minutes.

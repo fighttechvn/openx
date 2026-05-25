@@ -24,6 +24,18 @@ Machine Agent
 Allowed Local Folders
 ```
 
+Phase 1 cloud sync adds Supabase as a shared configuration store:
+
+```text
+iPad / Browser Dashboard
+  localStorage: local tokens, cloud settings
+        |
+        | Supabase REST RPC
+        v
+Supabase openx_cloud_workspaces
+  config JSON: machines, folders, file types
+```
+
 ## Entities
 
 ### Machine
@@ -45,6 +57,20 @@ Allowed Local Folders
 {
   "extension": ".html",
   "enabled": true
+}
+```
+
+### Cloud Workspace
+
+```json
+{
+  "slug": "openx-home",
+  "name": "Home Lab",
+  "config": {
+    "version": 1,
+    "machines": [],
+    "fileTypes": []
+  }
 }
 ```
 
@@ -132,6 +158,13 @@ GET /lan/scan
 POST /revoke
 ```
 
+### Supabase RPC
+
+```text
+POST /rest/v1/rpc/openx_pull_config
+POST /rest/v1/rpc/openx_push_config
+```
+
 ## Pairing Flow
 
 1. Agent starts and creates a random six-digit code.
@@ -163,6 +196,18 @@ POST /revoke
 6. Dashboard normalizes extensions to lowercase dot-prefixed values.
 7. Dashboard keeps at least one extension enabled.
 
+## Cloud Sync Flow
+
+1. User runs `supabase/schema.sql` in the Supabase project.
+2. User enters Supabase URL, anon key, workspace slug, and sync key in the dashboard.
+3. Dashboard calls `openx_push_config` to create or update a cloud workspace.
+4. Supabase stores a SHA-256 hash of the sync key and a JSON config object.
+5. Another device enters the same cloud settings and calls `openx_pull_config`.
+6. Dashboard replaces local machines and file filters with cloud config.
+7. Matching local agent tokens are preserved by `agentMachineId` or `host:port`.
+
+Agent bearer tokens are intentionally excluded from cloud config in phase 1.
+
 ## LAN Discovery Flow
 
 1. User selects an already paired local agent.
@@ -183,6 +228,9 @@ POST /revoke
 - File requests use canonical containment checks to prevent path traversal.
 - Only static report extensions are served.
 - LAN discovery requires an existing paired agent and does not grant access to discovered machines.
+- Supabase direct table access is revoked from `anon` and `authenticated`.
+- Supabase access uses RPC functions that verify the workspace sync key.
+- Cloud sync does not store agent bearer tokens in phase 1.
 
 ## Limitations
 

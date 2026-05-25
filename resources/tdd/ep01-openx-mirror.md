@@ -93,6 +93,19 @@ npm test
 6. Start a second agent on the same port from another LAN machine.
 7. Scan again and expect that machine in `devices`.
 
+### Cloud Sync
+
+1. Run `supabase/schema.sql` in Supabase SQL Editor.
+2. Open dashboard and configure Supabase URL, anon key, workspace slug, and sync key.
+3. Add at least one machine, folder, and file type filter.
+4. Click `Push`.
+5. Open dashboard in another browser profile or device.
+6. Enter the same cloud settings.
+7. Click `Pull`.
+8. Expect machines, folders, and file type filters to appear.
+9. Confirm agent tokens are not present until the second browser pairs locally.
+10. Pull again after local pairing and confirm matching local tokens are preserved.
+
 ## Dashboard Manual Tests
 
 ### Machine CRUD

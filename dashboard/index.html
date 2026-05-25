@@ -39,6 +39,28 @@
         <section class="panel">
           <div class="panel-header">
             <div>
+              <h3>Cloud Sync</h3>
+              <p>Sync machines, folders, and file filters across devices.</p>
+            </div>
+            <div class="toolbar-actions">
+              <button id="pullCloudBtn">Pull</button>
+              <button id="pushCloudBtn" class="primary">Push</button>
+            </div>
+          </div>
+          <div class="cloud-grid">
+            <label>Supabase URL <input id="cloudUrlInput" placeholder="https://project-ref.supabase.co"></label>
+            <label>Anon Key <input id="cloudAnonKeyInput" type="password" placeholder="Supabase anon key"></label>
+            <label>Workspace <input id="cloudWorkspaceInput" placeholder="openx-home"></label>
+            <label>Sync Key <input id="cloudSyncKeyInput" type="password" placeholder="At least 12 characters"></label>
+            <label>Name <input id="cloudWorkspaceNameInput" placeholder="Home Lab"></label>
+            <button id="saveCloudBtn">Save Cloud Settings</button>
+          </div>
+          <p id="cloudSyncMeta" class="cloud-meta">Cloud sync is not configured.</p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
               <h3>LAN Devices</h3>
               <p>OpenX agents discovered from the selected machine.</p>
             </div>

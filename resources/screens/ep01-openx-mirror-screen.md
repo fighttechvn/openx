@@ -9,9 +9,11 @@
 |                              | 192.168.1.20:8787 - paired                      |
 | [Add Machine]                 |              [Pair] [Scan LAN] [Check] [Delete] |
 |                              +-------------------------------------------------+
-| Machines                      | LAN Devices                                     |
-| + Mac Mini Dev     Paired     |                                                 |
-| + Windows QA      Not paired  | + MacBook Air                                  |
+| Machines                      | Cloud Sync                         [Pull] [Push] |
+| + Mac Mini Dev     Paired     | Supabase URL / anon key / workspace / sync key   |
+| + Windows QA      Not paired  +-------------------------------------------------+
+|                              | LAN Devices                                     |
+|                              | + MacBook Air                                  |
 |                              |   192.168.1.24:8787                  [Add]      |
 |                              +-------------------------------------------------+
 |                              | Folders                                         |

@@ -76,3 +76,16 @@ As a dashboard user, I want to scan the local Wi-Fi/LAN network for OpenX Mirror
 - User can add a discovered agent as a dashboard machine.
 - Discovered machines still require pairing before folder management.
 - Scan only detects OpenX Mirror agents that expose `/health`; it does not inventory arbitrary Wi-Fi devices.
+
+## EP01.US007 Sync Config To Cloud
+
+As a user with multiple devices, I want to sync OpenX dashboard configuration to Supabase so that iPad and desktop browsers can share the same machine list, folder metadata, and file type filters.
+
+### Acceptance Criteria
+
+- User can configure Supabase URL, anon key, workspace slug, workspace name, and sync key.
+- User can push local config to cloud.
+- User can pull cloud config from another browser.
+- Cloud config includes machines, folders, and file type filters.
+- Agent bearer tokens are not uploaded in phase 1.
+- Pulling config preserves matching local tokens when they already exist in the browser.
