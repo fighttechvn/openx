@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OpenX Mirror</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="mark">OX</div>
+          <div>
+            <h1>OpenX Mirror</h1>
+            <p>LAN static report browser</p>
+          </div>
+        </div>
+
+        <button id="addMachineBtn" class="primary">Add Machine</button>
+        <div id="machineList" class="machine-list"></div>
+      </aside>
+
+      <main class="workspace">
+        <section class="toolbar">
+          <div>
+            <h2 id="activeMachineName">No machine selected</h2>
+            <p id="activeMachineMeta">Add or select a machine to begin.</p>
+          </div>
+          <div class="toolbar-actions">
+            <button id="editMachineBtn">Edit</button>
+            <button id="pairBtn">Pair</button>
+            <button id="healthBtn">Check</button>
+            <button id="deleteMachineBtn" class="danger">Delete</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Folders</h3>
+              <p>Allowed folders on the selected machine.</p>
+            </div>
+            <button id="addFolderBtn">Add Folder</button>
+          </div>
+          <div id="folderList" class="folder-list empty">No folders yet.</div>
+        </section>
+
+        <section class="panel results-panel">
+          <div class="panel-header">
+            <div>
+              <h3>Static Files</h3>
+              <p>HTML files discovered from scans.</p>
+            </div>
+            <input id="searchInput" type="search" placeholder="Search files">
+          </div>
+          <div id="resultList" class="result-list empty">No files scanned.</div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="machineDialog">
+      <form method="dialog" id="machineForm">
+        <h3>Machine</h3>
+        <label>Name <input id="machineNameInput" required placeholder="Mac Mini Dev"></label>
+        <label>Host <input id="machineHostInput" required placeholder="192.168.1.20"></label>
+        <label>Port <input id="machinePortInput" required type="number" min="1" max="65535" value="8787"></label>
+        <menu>
+          <button value="cancel">Cancel</button>
+          <button id="saveMachineBtn" value="default" class="primary">Save</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="pairDialog">
+      <form method="dialog" id="pairForm">
+        <h3>Pair Machine</h3>
+        <label>Pairing Code <input id="pairCodeInput" required placeholder="123-456"></label>
+        <label>Client Name <input id="clientNameInput" required value="OpenX Dashboard"></label>
+        <menu>
+          <button value="cancel">Cancel</button>
+          <button id="submitPairBtn" value="default" class="primary">Pair</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="folderDialog">
+      <form method="dialog" id="folderForm">
+        <h3>Allowed Folder</h3>
+        <label>Name <input id="folderNameInput" required placeholder="lunar-ios"></label>
+        <label>Absolute Path <input id="folderPathInput" required placeholder="/Volumes/Fightech/Projects/lunar-ios"></label>
+        <label class="checkbox"><input id="folderRecursiveInput" type="checkbox" checked> Scan subfolders</label>
+        <menu>
+          <button value="cancel">Cancel</button>
+          <button id="saveFolderBtn" value="default" class="primary">Save</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
