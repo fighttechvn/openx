@@ -87,8 +87,13 @@ As a user with multiple devices, I want to sync OpenX dashboard configuration to
 ### Acceptance Criteria
 
 - User can configure Supabase URL, anon key, workspace slug, workspace name, and sync key.
+- User can enter only workspace and API key in the simple cloud dialog when the app has default Supabase project settings.
+- iPad users can load cloud config from the simple API key dialog.
+- Desktop users can save paired local agent metadata to the selected cloud workspace from the same API key dialog.
+- Sidebar machine navigation is hidden by default and can be opened or closed from a menu button.
 - User can push local config to cloud.
 - User can pull cloud config from another browser.
+- Supabase can seed public workspaces `public1`, `public2`, `public3`, `fighttechvn`, and `trunghieu`.
 - Cloud config includes machines, folders, and file type filters.
 - Agent bearer tokens are not uploaded in phase 1.
 - Pulling config preserves matching local tokens when they already exist in the browser.

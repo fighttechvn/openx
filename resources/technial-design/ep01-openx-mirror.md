@@ -230,12 +230,14 @@ POST /rest/v1/rpc/openx_revoke_api_key
 ## Cloud Sync Flow
 
 1. User runs `supabase/schema.sql` in the Supabase project.
-2. User enters Supabase URL, anon key, workspace slug, and sync key in the dashboard.
-3. Dashboard calls `openx_push_config` to create or update a cloud workspace.
-4. Supabase stores a SHA-256 hash of the sync key and a JSON config object.
-5. Another device enters the same cloud settings and calls `openx_pull_config`.
-6. Dashboard replaces local machines and file filters with cloud config.
-7. Matching local agent tokens are preserved by `agentMachineId` or `host:port`.
+2. User optionally runs `supabase/seed-public-workspaces.sql` to create public workspaces.
+3. User can enter Supabase URL, publishable or anon key, workspace slug, and sync key in advanced settings.
+4. User can alternatively enter workspace and API key in the simple API key dialog when defaults are available.
+5. Dashboard calls `openx_push_config` to create or update a cloud workspace.
+6. Supabase stores a SHA-256 hash of the sync key and a JSON config object.
+7. Another device enters the same API key or cloud settings and calls `openx_pull_config`.
+8. Dashboard replaces local machines and file filters with cloud config.
+9. Matching local agent tokens are preserved by `agentMachineId` or `host:port`.
 
 Agent bearer tokens are intentionally excluded from cloud config in phase 1.
 

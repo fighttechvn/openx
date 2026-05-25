@@ -16,6 +16,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -74,14 +78,45 @@ input {
 
 .shell {
   display: grid;
-  grid-template-columns: 310px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100vh;
 }
 
 .sidebar {
+  position: fixed;
+  z-index: 30;
+  inset: 0 auto 0 0;
+  width: min(310px, calc(100vw - 42px));
   border-right: 1px solid var(--border);
   background: var(--surface);
   padding: 18px;
+  transform: translateX(-100%);
+  transition: transform 180ms ease;
+  overflow-y: auto;
+}
+
+body.sidebar-open .sidebar {
+  transform: translateX(0);
+}
+
+.sidebar-overlay {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  background: rgba(24, 33, 47, 0.28);
+}
+
+body.sidebar-open .sidebar-overlay {
+  display: block;
+}
+
+.menu-button {
+  position: fixed;
+  z-index: 10;
+  top: 16px;
+  left: 16px;
+  min-width: 72px;
+  box-shadow: var(--shadow);
 }
 
 .brand {
@@ -89,6 +124,15 @@ input {
   gap: 12px;
   align-items: center;
   margin-bottom: 18px;
+}
+
+.brand > div:nth-child(2) {
+  min-width: 0;
+  flex: 1;
+}
+
+.sidebar-close {
+  flex: none;
 }
 
 .mark {
@@ -192,6 +236,7 @@ p {
   align-content: start;
   gap: 18px;
   padding: 24px;
+  padding-top: 74px;
 }
 
 .toolbar,
@@ -245,6 +290,10 @@ p {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   align-items: end;
+}
+
+.cloud-grid.compact {
+  margin-top: 4px;
 }
 
 .cloud-grid button {
@@ -456,11 +505,6 @@ menu {
 @media (max-width: 860px) {
   .shell {
     grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
   }
 
   .toolbar,

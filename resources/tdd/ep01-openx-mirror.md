@@ -115,6 +115,11 @@ npm test
 8. Expect machines, folders, and file type filters to appear.
 9. Confirm agent tokens are not present until the second browser pairs locally.
 10. Pull again after local pairing and confirm matching local tokens are preserved.
+11. Run `supabase/seed-public-workspaces.sql`.
+12. Open dashboard on iPad and click `Enter API Key`.
+13. Enter `public1` and `openx-public-public1`.
+14. Click `Load Cloud` and expect config to load.
+15. On desktop, pair an agent, enter the same workspace and API key, click `Save This Desktop`, and expect the cloud workspace to update.
 
 ### Cloud API Keys
 
