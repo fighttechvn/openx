@@ -49,9 +49,29 @@ http://<dashboard-machine-ip>:8080
 
 ## Run Agent On A Sharing Machine
 
+From a checked-out repo:
+
 ```bash
 cd openx-mirror
 ./run-agent.sh
+```
+
+From npm after publishing:
+
+```bash
+npx openx-mirror agent
+```
+
+Or with options:
+
+```bash
+npx openx-mirror agent --host 0.0.0.0 --port 8787
+```
+
+Local CLI test from this repository:
+
+```bash
+node bin/openx.js agent --host 0.0.0.0 --port 8787
 ```
 
 The agent prints a pairing code. In the dashboard, add a machine with the host, port, and code. After pairing, add allowed folders by absolute path and scan them.

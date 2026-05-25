@@ -1,10 +1,30 @@
 {
   "name": "openx-mirror",
   "version": "0.1.0",
-  "private": true,
+  "description": "LAN static report mirror with a browser dashboard and local sharing agent.",
+  "private": false,
   "type": "commonjs",
+  "bin": {
+    "openx": "bin/openx.js",
+    "openx-mirror": "bin/openx.js"
+  },
   "scripts": {
     "agent": "node agent/server.js",
     "test": "node --test"
-  }
+  },
+  "files": [
+    "agent",
+    "bin",
+    "dashboard",
+    "README.md",
+    "package.json"
+  ],
+  "keywords": [
+    "openx",
+    "lan",
+    "static",
+    "agent",
+    "dashboard"
+  ],
+  "license": "MIT"
 }
