@@ -51,10 +51,24 @@ http://<dashboard-machine-ip>:8080
 
 ```bash
 cd openx-mirror
-node agent/server.js --port 8787
+./run-agent.sh
 ```
 
 The agent prints a pairing code. In the dashboard, add a machine with the host, port, and code. After pairing, add allowed folders by absolute path and scan them.
+
+Defaults:
+
+```text
+Host:  0.0.0.0
+Port:  8787
+Store: .openx-mirror-agent.local.json
+```
+
+Override agent settings:
+
+```bash
+AGENT_HOST=127.0.0.1 AGENT_PORT=8788 ./run-agent.sh
+```
 
 ## Scan LAN
 
