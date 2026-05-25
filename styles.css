@@ -48,7 +48,8 @@ button.primary {
   color: white;
 }
 
-button.primary:hover {
+button.primary:hover,
+.nav-button.primary:hover {
   background: var(--accent-strong);
 }
 
@@ -129,6 +130,33 @@ p {
   display: grid;
   gap: 8px;
   margin-top: 16px;
+}
+
+.sidebar-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.nav-button {
+  display: grid;
+  min-height: 38px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0 14px;
+  text-decoration: none;
+}
+
+.nav-button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
+.nav-button:hover {
+  border-color: var(--accent);
 }
 
 .machine-item {
@@ -362,6 +390,24 @@ dialog form {
   gap: 8px;
 }
 
+.command-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  padding: 10px;
+}
+
+.command-box code {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+}
+
 label {
   display: grid;
   gap: 6px;
@@ -425,6 +471,7 @@ menu {
   .api-key-row,
   .editor-row,
   .inline-add,
+  .command-box,
   .cloud-grid {
     grid-template-columns: 1fr;
     align-items: start;
