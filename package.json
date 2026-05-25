@@ -1,0 +1,10 @@
+{
+  "name": "openx-mirror",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "agent": "node agent/server.js",
+    "test": "node --test"
+  }
+}
