@@ -6,8 +6,13 @@ REPO_SLUG="${REPO_SLUG:-fighttechvn/openx}"
 PAGES_BRANCH="${PAGES_BRANCH:-gh-pages}"
 PAGES_DIR="$ROOT_DIR/dashboard"
 TMP_DIR="$(mktemp -d)"
+PAGES_WORKTREE="$TMP_DIR-pages"
 
 cleanup() {
+  if [[ -d "$PAGES_WORKTREE" ]]; then
+    git -C "$ROOT_DIR" worktree remove --force "$PAGES_WORKTREE" >/dev/null 2>&1 || true
+  fi
+  git -C "$ROOT_DIR" worktree prune >/dev/null 2>&1 || true
   rm -rf "$TMP_DIR"
 }
 
@@ -54,21 +59,21 @@ EOF
 
 if git -C "$ROOT_DIR" ls-remote --exit-code --heads origin "$PAGES_BRANCH" >/dev/null 2>&1; then
   git -C "$ROOT_DIR" fetch origin "$PAGES_BRANCH"
-  git -C "$ROOT_DIR" worktree add --force "$TMP_DIR-pages" "origin/$PAGES_BRANCH"
+  git -C "$ROOT_DIR" worktree add --force "$PAGES_WORKTREE" "origin/$PAGES_BRANCH"
 else
-  git -C "$ROOT_DIR" worktree add --force --detach "$TMP_DIR-pages"
-  git -C "$TMP_DIR-pages" switch --orphan "$PAGES_BRANCH"
+  git -C "$ROOT_DIR" worktree add --force --detach "$PAGES_WORKTREE"
+  git -C "$PAGES_WORKTREE" switch --orphan "$PAGES_BRANCH"
 fi
 
-find "$TMP_DIR-pages" -mindepth 1 -maxdepth 1 ! -name ".git" -exec rm -rf {} +
-cp -R "$TMP_DIR"/. "$TMP_DIR-pages"/
+find "$PAGES_WORKTREE" -mindepth 1 -maxdepth 1 ! -name ".git" -exec rm -rf {} +
+cp -R "$TMP_DIR"/. "$PAGES_WORKTREE"/
 
-git -C "$TMP_DIR-pages" add -A
-if git -C "$TMP_DIR-pages" diff --cached --quiet; then
+git -C "$PAGES_WORKTREE" add -A
+if git -C "$PAGES_WORKTREE" diff --cached --quiet; then
   echo "No dashboard changes to deploy."
 else
-  git -C "$TMP_DIR-pages" commit -m "Deploy dashboard to GitHub Pages"
-  git -C "$TMP_DIR-pages" push origin "HEAD:$PAGES_BRANCH"
+  git -C "$PAGES_WORKTREE" commit -m "Deploy dashboard to GitHub Pages"
+  git -C "$PAGES_WORKTREE" push origin "HEAD:$PAGES_BRANCH"
 fi
 
 TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"

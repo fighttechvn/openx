@@ -65,3 +65,31 @@ The agent prints a pairing code. In the dashboard, add a machine with the host, 
 - Path traversal is blocked by canonical path checks.
 
 This is designed for trusted LANs. Use HTTPS or a VPN before exposing it outside a private network.
+
+## GitHub Pages Deploy
+
+The dashboard can be deployed to GitHub Pages from the `gh-pages` branch:
+
+```bash
+./deploy.sh
+```
+
+Defaults:
+
+```text
+Repository: fighttechvn/openx
+Branch:     gh-pages
+URL:        https://fighttechvn.github.io/openx/
+```
+
+Override target repository:
+
+```bash
+REPO_SLUG=fighttechvn/openx ./deploy.sh
+```
+
+If `GH_TOKEN` or `GITHUB_TOKEN` is present, the script also attempts to enable GitHub Pages through the GitHub API. Otherwise, enable it once in GitHub:
+
+```text
+Settings -> Pages -> Deploy from a branch -> gh-pages / root
+```
