@@ -49,6 +49,7 @@ function printHelp() {
 
 Usage:
   openx agent [--host 0.0.0.0] [--port 8787] [--store ./agent.json]
+  openx agent [--dashboard-url http://localhost:8080/] [--deployed-dashboard-url https://fighttechvn.github.io/openx/]
   openx help
   openx version
 

@@ -42,6 +42,10 @@ npm test
 6. Expect `200` and `accessToken`.
 7. Reuse same code.
 8. Expect `401`.
+9. Open `GET /pair-dashboard?target=local` from localhost.
+10. Expect a redirect to the dashboard with an `openxPair` URL-fragment payload.
+11. Call the same endpoint from a non-loopback host.
+12. Expect `403`.
 
 ### Folder Allowlist
 
@@ -76,12 +80,18 @@ npm test
 
 ### File Serve
 
-1. Request an allowed file path.
-2. Expect `200` and correct content type.
-3. Request `../secret.html`.
-4. Expect rejection.
-5. Request a disallowed extension.
-6. Expect `403`.
+1. Request an allowed file path without a bearer token or file ticket.
+2. Expect `401`.
+3. Request `POST /file-ticket` with a bearer token and allowed file path.
+4. Expect a short-lived file URL.
+5. Open that file URL.
+6. Expect `200`, correct content type, and a file-session cookie.
+7. Request a sibling static asset with that cookie.
+8. Expect `200`.
+9. Request `../secret.html`.
+10. Expect rejection.
+11. Request a disallowed extension.
+12. Expect `403`.
 
 ### LAN Discovery
 
@@ -136,6 +146,10 @@ npm test
 3. Add machine in dashboard.
 4. Click Pair and submit code.
 5. Confirm machine status changes to `Paired`.
+6. Restart with a fresh browser state.
+7. Open the agent's localhost auto-pair link for the local dashboard.
+8. Confirm the dashboard is paired without entering a code.
+9. Configure cloud sync, open the deployed auto-pair link, and confirm cloud config is pushed without storing the raw agent token in cloud config.
 
 ### Folder CRUD And Scan
 

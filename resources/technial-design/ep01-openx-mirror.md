@@ -129,6 +129,7 @@ Supabase openx_cloud_workspaces
 GET /health
 GET /pairing-code
 POST /pair
+GET /pair-dashboard
 ```
 
 `POST /pair` request:
@@ -167,6 +168,7 @@ POST /folders
 PUT /folders/:id
 DELETE /folders/:id
 GET /scan/:folderId
+POST /file-ticket
 GET /file/:folderId/*relativePath
 GET /lan/scan
 POST /revoke
@@ -193,15 +195,27 @@ POST /rest/v1/rpc/openx_revoke_api_key
 7. Dashboard stores the raw token in `localStorage`.
 8. Agent immediately rotates the pairing code after successful pairing.
 
+### Localhost Auto-Pair Flow
+
+1. Agent prints localhost links for the local dashboard and deployed dashboard.
+2. User opens `GET /pair-dashboard` from the same machine.
+3. Agent rejects non-loopback requests.
+4. Agent creates a paired client token, stores only its hash, and redirects to the dashboard with a URL-fragment payload.
+5. Dashboard saves the machine token in local storage, loads folders, and clears the fragment.
+6. If cloud sync is configured in that browser, dashboard pushes the updated cloud config without uploading the raw agent token.
+
 ## File Access Flow
 
 1. Dashboard calls `GET /scan/:folderId`.
 2. Agent walks the allowed folder.
 3. Agent returns static file entries with relative paths.
 4. Dashboard filters entries by enabled file type tags.
-5. Dashboard builds file links pointing to `GET /file/:folderId/*relativePath`.
+5. Dashboard builds open actions for `GET /file/:folderId/*relativePath`.
 6. User can click either the link or the entire result item to open the file.
-7. Agent resolves the relative path inside the allowed root before streaming.
+7. Dashboard requests `POST /file-ticket` with the bearer token.
+8. Agent returns a short-lived file URL and the new tab navigates to it.
+9. Agent sets a short-lived file-session cookie for the folder so HTML report assets can load.
+10. Agent resolves the relative path inside the allowed root before streaming.
 
 ## File Type Filter Flow
 

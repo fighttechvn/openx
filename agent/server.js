@@ -11,8 +11,14 @@ const args = parseArgs(process.argv.slice(2));
 const port = Number(args.port || process.env.OPENX_MIRROR_PORT || 8787);
 const host = args.host || process.env.OPENX_MIRROR_HOST || "0.0.0.0";
 const storePath = args.store || process.env.OPENX_MIRROR_STORE;
+const dashboardUrl = normalizeDashboardUrl(args["dashboard-url"] || process.env.OPENX_MIRROR_DASHBOARD_URL || "http://localhost:8080/");
+const deployedDashboardUrl = normalizeDashboardUrl(args["deployed-dashboard-url"] || process.env.OPENX_MIRROR_DEPLOYED_DASHBOARD_URL || "https://fighttechvn.github.io/openx/");
 const state = loadStore(storePath);
 let pairing = createPairingCode();
+const FILE_TICKET_TTL_MS = 60 * 1000;
+const FILE_SESSION_TTL_MS = 5 * 60 * 1000;
+const fileTickets = new Map();
+const fileSessions = new Map();
 
 const server = http.createServer(async (req, res) => {
   setCors(res);
@@ -41,13 +47,7 @@ const server = http.createServer(async (req, res) => {
       if (!pairing || Date.now() > pairing.expiresAtMs || body.code !== pairing.code) {
         return sendJson(res, 401, { error: "Invalid or expired pairing code." });
       }
-      const token = crypto.randomBytes(32).toString("hex");
-      state.clients.push({
-        id: crypto.randomUUID(),
-        name: body.clientName || "OpenX Dashboard",
-        tokenHash: hashToken(token),
-        pairedAt: new Date().toISOString()
-      });
+      const token = registerClient(body.clientName || "OpenX Dashboard");
       pairing = createPairingCode();
       saveStore(state, storePath);
       return sendJson(res, 200, {
@@ -56,6 +56,23 @@ const server = http.createServer(async (req, res) => {
         accessToken: token,
         expiresAt: null
       });
+    }
+
+    if (req.method === "GET" && url.pathname === "/pair-dashboard") {
+      return redirectPairDashboard(req, res, url);
+    }
+
+    const fileMatch = url.pathname.match(/^\/file\/([^/]+)\/(.+)$/);
+    if (fileMatch && req.method === "GET") {
+      const folderId = decodeURIComponent(fileMatch[1]);
+      const relativePath = normalizeRelativePath(decodeURIComponent(fileMatch[2]));
+      const fileAuth = authenticateFileRequest(req, url, folderId, relativePath);
+      if (!fileAuth.ok) return sendJson(res, 401, { error: "Missing or invalid bearer token." });
+      if (fileAuth.issueSession) {
+        const session = createFileSession(folderId);
+        res.setHeader("Set-Cookie", fileSessionCookie(session, folderId));
+      }
+      return streamStaticFile(res, folderId, relativePath);
     }
 
     const auth = authenticate(req);
@@ -119,23 +136,21 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { files: scanFolder(folder) });
     }
 
-    const fileMatch = url.pathname.match(/^\/file\/([^/]+)\/(.+)$/);
-    if (fileMatch && req.method === "GET") {
-      const folder = findFolder(decodeURIComponent(fileMatch[1]));
-      if (!folder) return sendJson(res, 404, { error: "Folder not found." });
-      const relativePath = decodeURIComponent(fileMatch[2]);
-      const fullPath = resolveInside(folder.path, relativePath);
-      if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) {
-        return sendJson(res, 404, { error: "File not found." });
+    if (req.method === "POST" && url.pathname === "/file-ticket") {
+      const body = await readJson(req);
+      const folderId = String(body.folderId || "");
+      const relativePath = normalizeRelativePath(body.relativePath);
+      try {
+        resolveStaticFile(folderId, relativePath);
+      } catch (error) {
+        return sendJson(res, error.status || 400, { error: error.message });
       }
-      if (!isStaticFile(fullPath)) {
-        return sendJson(res, 403, { error: "File type is not allowed." });
-      }
-      res.writeHead(200, {
-        "Content-Type": contentType(fullPath),
-        "Cache-Control": "no-store"
+      const ticket = createFileTicket(folderId, relativePath);
+      const fileUrl = absoluteUrl(req, `${filePathFor(folderId, relativePath)}?ticket=${encodeURIComponent(ticket.value)}`);
+      return sendJson(res, 200, {
+        url: fileUrl,
+        expiresAt: new Date(ticket.expiresAtMs).toISOString()
       });
-      return fs.createReadStream(fullPath).pipe(res);
     }
 
     if (req.method === "POST" && url.pathname === "/revoke") {
@@ -156,6 +171,8 @@ server.listen(port, host, () => {
   console.log(`Machine: ${state.machineName} (${state.machineId})`);
   console.log(`Pairing code: ${pairing.code}`);
   console.log(`Expires: ${pairing.expiresAt}`);
+  console.log(`Auto pair local dashboard: ${pairDashboardLink("local")}`);
+  console.log(`Auto pair deployed dashboard: ${pairDashboardLink("deploy")}`);
 });
 
 function parseArgs(input) {
@@ -179,6 +196,17 @@ function createPairingCode() {
   };
 }
 
+function registerClient(clientName) {
+  const token = crypto.randomBytes(32).toString("hex");
+  state.clients.push({
+    id: crypto.randomUUID(),
+    name: clientName || "OpenX Dashboard",
+    tokenHash: hashToken(token),
+    pairedAt: new Date().toISOString()
+  });
+  return token;
+}
+
 function authenticate(req) {
   const token = bearerToken(req);
   if (!token) return { ok: false };
@@ -199,10 +227,185 @@ function findFolder(folderId) {
   return state.folders.find((folder) => folder.id === folderId);
 }
 
+function redirectPairDashboard(req, res, url) {
+  if (!isLoopbackAddress(req.socket.remoteAddress)) {
+    return sendJson(res, 403, { error: "Auto pairing is only available from localhost." });
+  }
+  const targetUrl = dashboardTargetUrl(url);
+  const token = registerClient(url.searchParams.get("clientName") || "OpenX Dashboard Link");
+  saveStore(state, storePath);
+  targetUrl.hash = `openxPair=${encodeBase64Url(JSON.stringify({
+    version: 1,
+    machineId: state.machineId,
+    machineName: state.machineName,
+    host: url.searchParams.get("host") || "localhost",
+    port,
+    accessToken: token,
+    pairedAt: new Date().toISOString()
+  }))}`;
+  res.writeHead(302, {
+    Location: targetUrl.toString(),
+    "Cache-Control": "no-store"
+  });
+  return res.end();
+}
+
+function dashboardTargetUrl(url) {
+  const explicitDashboard = url.searchParams.get("dashboard");
+  if (explicitDashboard) return new URL(normalizeDashboardUrl(explicitDashboard));
+  return new URL(url.searchParams.get("target") === "deploy" ? deployedDashboardUrl : dashboardUrl);
+}
+
+function normalizeDashboardUrl(value) {
+  const url = new URL(value);
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error("Dashboard URL must use http or https.");
+  }
+  return url.toString();
+}
+
+function pairDashboardLink(target) {
+  return `http://localhost:${port}/pair-dashboard?target=${encodeURIComponent(target)}`;
+}
+
+function isLoopbackAddress(address) {
+  const normalized = normalizeIp(address);
+  return normalized === "::1" || normalized === "127.0.0.1" || normalized.startsWith("127.");
+}
+
 function scanFolder(folder) {
   const files = [];
   walk(folder.path, "", folder.recursive !== false, files, folder);
   return files;
+}
+
+function normalizeRelativePath(relativePath) {
+  const normalized = String(relativePath || "").replace(/\\/g, "/").replace(/^\/+/, "");
+  if (!normalized) throw new Error("File path is required.");
+  return normalized;
+}
+
+function resolveStaticFile(folderId, relativePath) {
+  const folder = findFolder(folderId);
+  if (!folder) {
+    const error = new Error("Folder not found.");
+    error.status = 404;
+    throw error;
+  }
+  const fullPath = resolveInside(folder.path, relativePath);
+  if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isFile()) {
+    const error = new Error("File not found.");
+    error.status = 404;
+    throw error;
+  }
+  if (!isStaticFile(fullPath)) {
+    const error = new Error("File type is not allowed.");
+    error.status = 403;
+    throw error;
+  }
+  return fullPath;
+}
+
+function streamStaticFile(res, folderId, relativePath) {
+  try {
+    const fullPath = resolveStaticFile(folderId, relativePath);
+    res.writeHead(200, {
+      "Content-Type": contentType(fullPath),
+      "Cache-Control": "no-store"
+    });
+    return fs.createReadStream(fullPath).pipe(res);
+  } catch (error) {
+    return sendJson(res, error.status || 400, { error: error.message });
+  }
+}
+
+function createFileTicket(folderId, relativePath) {
+  cleanupExpired(fileTickets);
+  const value = crypto.randomBytes(24).toString("hex");
+  const expiresAtMs = Date.now() + FILE_TICKET_TTL_MS;
+  fileTickets.set(value, { folderId, relativePath, expiresAtMs });
+  return { value, expiresAtMs };
+}
+
+function createFileSession(folderId) {
+  cleanupExpired(fileSessions);
+  const value = crypto.randomBytes(24).toString("hex");
+  fileSessions.set(value, {
+    folderId,
+    expiresAtMs: Date.now() + FILE_SESSION_TTL_MS
+  });
+  return value;
+}
+
+function authenticateFileRequest(req, url, folderId, relativePath) {
+  if (authenticate(req).ok) return { ok: true };
+
+  const ticket = url.searchParams.get("ticket") || "";
+  const ticketRecord = fileTickets.get(ticket);
+  if (
+    ticketRecord &&
+    ticketRecord.expiresAtMs >= Date.now() &&
+    ticketRecord.folderId === folderId &&
+    ticketRecord.relativePath === relativePath
+  ) {
+    fileTickets.delete(ticket);
+    return { ok: true, issueSession: true };
+  }
+
+  const session = cookieValue(req, "openx_file_session");
+  const sessionRecord = fileSessions.get(session);
+  if (
+    sessionRecord &&
+    sessionRecord.expiresAtMs >= Date.now() &&
+    sessionRecord.folderId === folderId
+  ) {
+    return { ok: true };
+  }
+
+  return { ok: false };
+}
+
+function fileSessionCookie(session, folderId) {
+  return [
+    `openx_file_session=${session}`,
+    `Max-Age=${Math.floor(FILE_SESSION_TTL_MS / 1000)}`,
+    `Path=/file/${encodeURIComponent(folderId)}/`,
+    "HttpOnly",
+    "SameSite=Lax"
+  ].join("; ");
+}
+
+function cleanupExpired(map) {
+  const now = Date.now();
+  for (const [key, value] of map.entries()) {
+    if (!value || value.expiresAtMs < now) map.delete(key);
+  }
+}
+
+function cookieValue(req, name) {
+  const cookies = String(req.headers.cookie || "").split(";");
+  for (const cookie of cookies) {
+    const [rawName, ...rawValue] = cookie.trim().split("=");
+    if (rawName === name) return rawValue.join("=");
+  }
+  return "";
+}
+
+function filePathFor(folderId, relativePath) {
+  const encodedPath = relativePath.split("/").map(encodeURIComponent).join("/");
+  return `/file/${encodeURIComponent(folderId)}/${encodedPath}`;
+}
+
+function absoluteUrl(req, pathname) {
+  return `http://${req.headers.host || `localhost:${port}`}${pathname}`;
+}
+
+function encodeBase64Url(value) {
+  return Buffer.from(value, "utf8")
+    .toString("base64")
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/u, "");
 }
 
 async function scanLanAgents({ ownMachineId, port, subnet, timeoutMs }) {
@@ -304,6 +507,7 @@ function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+  res.setHeader("Access-Control-Allow-Private-Network", "true");
 }
 
 function sendJson(res, status, payload) {
@@ -323,5 +527,16 @@ function contentType(filePath) {
   if (extension === ".html" || extension === ".htm") return "text/html; charset=utf-8";
   if (extension === ".pdf") return "application/pdf";
   if (extension === ".md" || extension === ".txt") return "text/plain; charset=utf-8";
+  if (extension === ".css") return "text/css; charset=utf-8";
+  if (extension === ".js" || extension === ".mjs") return "text/javascript; charset=utf-8";
+  if (extension === ".json") return "application/json; charset=utf-8";
+  if (extension === ".png") return "image/png";
+  if (extension === ".jpg" || extension === ".jpeg") return "image/jpeg";
+  if (extension === ".gif") return "image/gif";
+  if (extension === ".webp") return "image/webp";
+  if (extension === ".svg") return "image/svg+xml";
+  if (extension === ".ico") return "image/x-icon";
+  if (extension === ".woff") return "font/woff";
+  if (extension === ".woff2") return "font/woff2";
   return "application/octet-stream";
 }

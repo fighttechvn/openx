@@ -24,6 +24,8 @@ As a machine owner, I want the sharing machine to generate a short verification 
 - Dashboard submits host, port, pairing code, and client name.
 - Agent returns a long random access token after a valid pairing request.
 - Dashboard stores the token locally and uses it as a bearer token.
+- User can open a localhost auto-pair link from the agent to pair local or deployed dashboard without typing the code.
+- Auto-pair updates cloud config when cloud sync is already configured, without uploading the raw agent token.
 
 ## EP01.US003 Manage Shared Folders
 
@@ -59,6 +61,7 @@ As a machine owner, I want the agent to prevent path traversal and unauthorized 
 ### Acceptance Criteria
 
 - Every protected API requires `Authorization: Bearer <token>`.
+- Browser-opened static files use short-lived file tickets so links can open in a new tab.
 - File serving resolves requested paths against the canonical allowed folder.
 - Requests like `../secret.html` are rejected.
 - Non-allowed file types are rejected.
