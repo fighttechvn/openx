@@ -227,6 +227,42 @@ p {
   margin-top: 10px;
 }
 
+.secret-box {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: #e7f4f2;
+  padding: 12px;
+}
+
+.secret-box input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.api-key-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.api-key-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.api-key-meta {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .tag-list {
   display: flex;
   flex-wrap: wrap;
@@ -386,6 +422,7 @@ menu {
   .folder-row,
   .result-row,
   .device-row,
+  .api-key-row,
   .editor-row,
   .inline-add,
   .cloud-grid {
