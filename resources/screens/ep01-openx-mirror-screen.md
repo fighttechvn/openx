@@ -7,11 +7,16 @@
 | OX OpenX Mirror               | Selected Machine                                |
 | LAN static report browser     | Mac Mini Dev                                    |
 |                              | 192.168.1.20:8787 - paired                      |
-| [Add Machine]                 |                       [Pair] [Check] [Delete]   |
+| [Add Machine]                 |              [Pair] [Scan LAN] [Check] [Delete] |
 |                              +-------------------------------------------------+
-| Machines                      | Folders                                         |
-| + Mac Mini Dev     Paired     |                                  [Add Folder]   |
-| + Windows QA      Not paired  | + lunar-ios                                     |
+| Machines                      | LAN Devices                                     |
+| + Mac Mini Dev     Paired     |                                                 |
+| + Windows QA      Not paired  | + MacBook Air                                  |
+|                              |   192.168.1.24:8787                  [Add]      |
+|                              +-------------------------------------------------+
+|                              | Folders                                         |
+|                              |                                  [Add Folder]   |
+|                              | + lunar-ios                                     |
 |                              |   /Volumes/Fightech/Projects/lunar-ios          |
 |                              |                         [Scan] [Edit] [Delete]  |
 |                              +-------------------------------------------------+
@@ -28,6 +33,7 @@
 - Machine add dialog.
 - Pairing dialog.
 - Active machine toolbar.
+- LAN device discovery panel.
 - Folder allowlist panel.
 - Folder add/edit dialog.
 - Static file result panel.
@@ -41,6 +47,8 @@
 - Machine not paired.
 - Machine paired.
 - Agent offline.
+- LAN scan empty.
+- LAN scan results.
 - Folder list empty.
 - Scan result empty.
 - Search no match.
@@ -52,6 +60,8 @@
 - Select machine.
 - Pair machine.
 - Check machine health.
+- Scan LAN.
+- Add discovered machine.
 - Delete machine.
 - Add folder.
 - Edit folder.

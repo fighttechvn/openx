@@ -119,6 +119,7 @@ PUT /folders/:id
 DELETE /folders/:id
 GET /scan/:folderId
 GET /file/:folderId/*relativePath
+GET /lan/scan
 POST /revoke
 ```
 
@@ -141,6 +142,16 @@ POST /revoke
 4. Dashboard builds file links pointing to `GET /file/:folderId/*relativePath`.
 5. Agent resolves the relative path inside the allowed root before streaming.
 
+## LAN Discovery Flow
+
+1. User selects an already paired local agent.
+2. Dashboard calls `GET /lan/scan?port=8787`.
+3. Agent infers the local IPv4 `/24` subnet from the request socket or network interfaces.
+4. Agent calls `GET /health` on each host in that subnet using bounded concurrency and short timeouts.
+5. Agent returns only reachable OpenX Mirror agents.
+6. Dashboard renders discovered devices and can add them as machines.
+7. Added devices are not trusted until the user pairs them with their own pairing code.
+
 ## Security Controls
 
 - Token-based authorization for all folder, scan, file, and revoke endpoints.
@@ -150,6 +161,7 @@ POST /revoke
 - Folder paths are canonicalized with `fs.realpathSync`.
 - File requests use canonical containment checks to prevent path traversal.
 - Only static report extensions are served.
+- LAN discovery requires an existing paired agent and does not grant access to discovered machines.
 
 ## Limitations
 
@@ -157,6 +169,7 @@ POST /revoke
 - CORS is open for LAN convenience in the MVP.
 - Dashboard tokens live in browser local storage.
 - Agent is a developer tool, not a hardened internet-facing server.
+- LAN scan only detects OpenX Mirror agents on the configured port; it is not a full network inventory tool.
 
 ## Future Work
 

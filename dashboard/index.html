@@ -30,9 +30,21 @@
           <div class="toolbar-actions">
             <button id="editMachineBtn">Edit</button>
             <button id="pairBtn">Pair</button>
+            <button id="scanLanBtn">Scan LAN</button>
             <button id="healthBtn">Check</button>
             <button id="deleteMachineBtn" class="danger">Delete</button>
           </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>LAN Devices</h3>
+              <p>OpenX agents discovered from the selected machine.</p>
+            </div>
+            <input id="lanSearchInput" type="search" placeholder="Search devices">
+          </div>
+          <div id="lanDeviceList" class="device-list empty">No LAN scan yet.</div>
         </section>
 
         <section class="panel">

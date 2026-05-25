@@ -200,13 +200,15 @@ p {
 }
 
 .folder-list,
-.result-list {
+.result-list,
+.device-list {
   display: grid;
   gap: 8px;
 }
 
 .folder-row,
-.result-row {
+.result-row,
+.device-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -217,7 +219,8 @@ p {
 }
 
 .folder-path,
-.result-path {
+.result-path,
+.device-path {
   overflow-wrap: anywhere;
   color: var(--muted);
   font-size: 13px;

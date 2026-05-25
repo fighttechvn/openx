@@ -56,6 +56,10 @@ node agent/server.js --port 8787
 
 The agent prints a pairing code. In the dashboard, add a machine with the host, port, and code. After pairing, add allowed folders by absolute path and scan them.
 
+## Scan LAN
+
+After pairing with at least one local agent, click `Scan LAN` in the dashboard. The selected agent scans its local `/24` subnet for other OpenX Mirror agents listening on the same port. Discovered machines can be added to the dashboard, but each one still needs its own pairing code before folder access is allowed.
+
 ## Security Model
 
 - Pairing code expires after 5 minutes.

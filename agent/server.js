@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const fs = require("fs");
 const http = require("http");
+const os = require("os");
 const path = require("path");
 const crypto = require("crypto");
 const { loadStore, saveStore } = require("./store");
@@ -62,6 +63,19 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "GET" && url.pathname === "/folders") {
       return sendJson(res, 200, { folders: state.folders });
+    }
+
+    if (req.method === "GET" && url.pathname === "/lan/scan") {
+      const scanPort = Number(url.searchParams.get("port") || port);
+      const subnet = url.searchParams.get("subnet") || inferSubnet(req.socket.localAddress);
+      if (!subnet) return sendJson(res, 400, { error: "Could not infer LAN subnet." });
+      const devices = await scanLanAgents({
+        ownMachineId: state.machineId,
+        port: scanPort,
+        subnet,
+        timeoutMs: Number(url.searchParams.get("timeoutMs") || 280)
+      });
+      return sendJson(res, 200, { subnet, port: scanPort, devices });
     }
 
     if (req.method === "POST" && url.pathname === "/folders") {
@@ -189,6 +203,82 @@ function scanFolder(folder) {
   const files = [];
   walk(folder.path, "", folder.recursive !== false, files, folder);
   return files;
+}
+
+async function scanLanAgents({ ownMachineId, port, subnet, timeoutMs }) {
+  const hosts = Array.from({ length: 254 }, (_value, index) => `${subnet}.${index + 1}`);
+  const devices = [];
+  let cursor = 0;
+  const workers = Array.from({ length: 32 }, async () => {
+    while (cursor < hosts.length) {
+      const hostAddress = hosts[cursor];
+      cursor += 1;
+      const startedAt = Date.now();
+      const health = await fetchAgentHealth(hostAddress, port, timeoutMs);
+      if (health && health.machineId !== ownMachineId) {
+        devices.push({
+          host: hostAddress,
+          port,
+          machineId: health.machineId,
+          machineName: health.machineName,
+          pairingExpiresAt: health.pairingExpiresAt,
+          latencyMs: Date.now() - startedAt
+        });
+      }
+    }
+  });
+  await Promise.all(workers);
+  return devices.sort((left, right) => left.host.localeCompare(right.host, undefined, { numeric: true }));
+}
+
+function fetchAgentHealth(hostAddress, targetPort, timeoutMs) {
+  return new Promise((resolve) => {
+    const request = http.get({
+      host: hostAddress,
+      port: targetPort,
+      path: "/health",
+      timeout: timeoutMs
+    }, (response) => {
+      const chunks = [];
+      response.on("data", (chunk) => chunks.push(chunk));
+      response.on("end", () => {
+        if (response.statusCode !== 200) return resolve(null);
+        try {
+          const payload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+          resolve(payload && payload.ok ? payload : null);
+        } catch (_error) {
+          resolve(null);
+        }
+      });
+    });
+    request.on("timeout", () => {
+      request.destroy();
+      resolve(null);
+    });
+    request.on("error", () => resolve(null));
+  });
+}
+
+function inferSubnet(localAddress) {
+  const normalized = normalizeIp(localAddress);
+  if (normalized && !normalized.startsWith("127.")) {
+    return normalized.split(".").slice(0, 3).join(".");
+  }
+  for (const details of Object.values(os.networkInterfaces())) {
+    for (const item of details || []) {
+      if (item.family === "IPv4" && !item.internal) {
+        return item.address.split(".").slice(0, 3).join(".");
+      }
+    }
+  }
+  return normalized ? normalized.split(".").slice(0, 3).join(".") : "";
+}
+
+function normalizeIp(address) {
+  if (!address) return "";
+  if (address.startsWith("::ffff:")) return address.slice("::ffff:".length);
+  if (address === "::1") return "127.0.0.1";
+  return address;
 }
 
 function walk(rootPath, relativeRoot, recursive, files, folder) {

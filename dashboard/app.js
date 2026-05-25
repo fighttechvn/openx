@@ -5,6 +5,7 @@
   let editingMachineId = null;
   let editingFolderId = null;
   let currentResults = [];
+  let lanDevices = [];
 
   const el = {
     machineList: document.getElementById("machineList"),
@@ -12,7 +13,9 @@
     activeMachineMeta: document.getElementById("activeMachineMeta"),
     folderList: document.getElementById("folderList"),
     resultList: document.getElementById("resultList"),
+    lanDeviceList: document.getElementById("lanDeviceList"),
     searchInput: document.getElementById("searchInput"),
+    lanSearchInput: document.getElementById("lanSearchInput"),
     toast: document.getElementById("toast"),
     machineDialog: document.getElementById("machineDialog"),
     machineForm: document.getElementById("machineForm"),
@@ -33,10 +36,12 @@
   document.getElementById("addMachineBtn").addEventListener("click", openNewMachineDialog);
   document.getElementById("editMachineBtn").addEventListener("click", openEditMachineDialog);
   document.getElementById("pairBtn").addEventListener("click", openPairDialog);
+  document.getElementById("scanLanBtn").addEventListener("click", scanLan);
   document.getElementById("healthBtn").addEventListener("click", checkHealth);
   document.getElementById("deleteMachineBtn").addEventListener("click", deleteActiveMachine);
   document.getElementById("addFolderBtn").addEventListener("click", openNewFolderDialog);
   el.searchInput.addEventListener("input", renderResults);
+  el.lanSearchInput.addEventListener("input", renderLanDevices);
 
   el.machineForm.addEventListener("submit", saveMachine);
   el.pairForm.addEventListener("submit", pairMachine);
@@ -64,6 +69,7 @@
   function render() {
     renderMachines();
     renderActiveMachine();
+    renderLanDevices();
     renderFolders();
     renderResults();
     persist();
@@ -356,6 +362,77 @@
     } catch (error) {
       showToast(error.message);
     }
+  }
+
+  async function scanLan() {
+    const machine = activeMachine();
+    if (!machine || !machine.token) return showToast("Pair a local agent first.");
+    showToast("Scanning LAN...");
+    try {
+      const response = await fetch(apiUrl(machine, `/lan/scan?port=${encodeURIComponent(machine.port)}`), {
+        headers: authHeaders(machine)
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "LAN scan failed.");
+      lanDevices = data.devices || [];
+      renderLanDevices();
+      showToast(`Found ${lanDevices.length} OpenX agents.`);
+    } catch (error) {
+      showToast(error.message);
+    }
+  }
+
+  function renderLanDevices() {
+    const query = el.lanSearchInput.value.trim().toLowerCase();
+    const devices = lanDevices.filter((device) => {
+      const text = `${device.machineName || ""} ${device.host || ""} ${device.machineId || ""}`.toLowerCase();
+      return text.includes(query);
+    });
+    el.lanDeviceList.innerHTML = "";
+    if (!devices.length) {
+      el.lanDeviceList.className = "device-list empty";
+      el.lanDeviceList.textContent = lanDevices.length ? "No devices match the search." : "No LAN scan yet.";
+      return;
+    }
+    el.lanDeviceList.className = "device-list";
+    for (const device of devices) {
+      const row = document.createElement("div");
+      row.className = "device-row";
+      row.innerHTML = `
+        <div>
+          <strong>${escapeHtml(device.machineName || "OpenX Agent")}</strong>
+          <div class="device-path">${escapeHtml(device.host)}:${device.port}</div>
+        </div>
+        <div class="row-actions">
+          <span class="status">${escapeHtml(device.latencyMs)} ms</span>
+          <button data-action="add">Add</button>
+        </div>
+      `;
+      row.querySelector('[data-action="add"]').addEventListener("click", () => addDiscoveredMachine(device));
+      el.lanDeviceList.appendChild(row);
+    }
+  }
+
+  function addDiscoveredMachine(device) {
+    const existing = state.machines.find((machine) => machine.host === device.host && Number(machine.port) === Number(device.port));
+    if (existing) {
+      activeMachineId = existing.id;
+      render();
+      showToast("Machine already exists.");
+      return;
+    }
+    const machine = {
+      id: crypto.randomUUID(),
+      name: device.machineName || `OpenX ${device.host}`,
+      host: device.host,
+      port: device.port,
+      agentMachineId: device.machineId,
+      folders: []
+    };
+    state.machines.push(machine);
+    activeMachineId = machine.id;
+    render();
+    showToast("Machine added. Pair it to manage folders.");
   }
 
   function apiUrl(machine, path) {

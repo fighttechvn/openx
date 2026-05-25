@@ -60,3 +60,16 @@ As a machine owner, I want the agent to prevent path traversal and unauthorized 
 - Requests like `../secret.html` are rejected.
 - Non-allowed file types are rejected.
 - Clients can revoke their own token.
+
+## EP01.US006 Discover LAN Agents
+
+As a dashboard user, I want to scan the local Wi-Fi/LAN network for OpenX Mirror agents so that I can quickly add machines without typing IP addresses manually.
+
+### Acceptance Criteria
+
+- Dashboard exposes a `Scan LAN` action for a paired machine.
+- Agent scans the inferred local subnet for OpenX Mirror agents on the target port.
+- Scan result shows host, port, machine name, and latency.
+- User can add a discovered agent as a dashboard machine.
+- Discovered machines still require pairing before folder management.
+- Scan only detects OpenX Mirror agents that expose `/health`; it does not inventory arbitrary Wi-Fi devices.

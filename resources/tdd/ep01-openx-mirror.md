@@ -70,6 +70,16 @@ npm test
 5. Request a disallowed extension.
 6. Expect `403`.
 
+### LAN Discovery
+
+1. Start a paired local agent.
+2. Call `GET /lan/scan` without token.
+3. Expect `401`.
+4. Call `GET /lan/scan?subnet=127.0.0&port=8787` with token.
+5. Expect response shape with `subnet`, `port`, and `devices`.
+6. Start a second agent on the same port from another LAN machine.
+7. Scan again and expect that machine in `devices`.
+
 ## Dashboard Manual Tests
 
 ### Machine CRUD
@@ -96,6 +106,14 @@ npm test
 4. Confirm static files appear.
 5. Search for `e2e`.
 6. Open `e2e.html` in a new tab.
+
+### LAN Scan
+
+1. Pair at least one local agent.
+2. Click `Scan LAN`.
+3. Confirm discovered OpenX agents appear in `LAN Devices`.
+4. Click `Add` on a discovered device.
+5. Confirm it appears in the machine sidebar as not paired.
 
 ## Done Criteria
 
