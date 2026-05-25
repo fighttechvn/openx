@@ -39,7 +39,7 @@ As a paired dashboard user, I want to add, edit, and remove allowed folders on a
 
 ## EP01.US004 Scan Static Files
 
-As a dashboard user, I want to scan a shared folder and list static files so that I can quickly open reports like `e2e.html` and `srs.html`.
+As a dashboard user, I want to scan a shared folder, filter static files by type, and open files from the result list so that I can quickly view reports like `e2e.html`, `srs.html`, and Markdown notes.
 
 ### Acceptance Criteria
 
@@ -47,7 +47,10 @@ As a dashboard user, I want to scan a shared folder and list static files so tha
 - Agent returns allowed file types only: `.html`, `.htm`, `.pdf`, `.txt`, `.md`.
 - Dashboard groups each file by folder and shows relative path.
 - User can search scanned results.
-- File links open in a new browser tab.
+- User can click the whole result item to open a file in a new browser tab.
+- Dashboard shows file type filter tags, defaulting to `.html` and `.md`.
+- User can toggle file type tags to filter visible results.
+- User can open a three-dot menu to add, edit, delete, and activate file type filters.
 
 ## EP01.US005 Protect Shared Files
 

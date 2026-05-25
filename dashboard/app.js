@@ -1,11 +1,13 @@
 (function () {
   const STORAGE_KEY = "openx-mirror-state-v1";
   const state = loadState();
+  ensureFileTypeState(state);
   let activeMachineId = state.activeMachineId || null;
   let editingMachineId = null;
   let editingFolderId = null;
   let currentResults = [];
   let lanDevices = [];
+  let editingFileTypes = [];
 
   const el = {
     machineList: document.getElementById("machineList"),
@@ -13,6 +15,7 @@
     activeMachineMeta: document.getElementById("activeMachineMeta"),
     folderList: document.getElementById("folderList"),
     resultList: document.getElementById("resultList"),
+    fileTypeTags: document.getElementById("fileTypeTags"),
     lanDeviceList: document.getElementById("lanDeviceList"),
     searchInput: document.getElementById("searchInput"),
     lanSearchInput: document.getElementById("lanSearchInput"),
@@ -30,7 +33,11 @@
     folderForm: document.getElementById("folderForm"),
     folderNameInput: document.getElementById("folderNameInput"),
     folderPathInput: document.getElementById("folderPathInput"),
-    folderRecursiveInput: document.getElementById("folderRecursiveInput")
+    folderRecursiveInput: document.getElementById("folderRecursiveInput"),
+    fileTypesDialog: document.getElementById("fileTypesDialog"),
+    fileTypesForm: document.getElementById("fileTypesForm"),
+    fileTypeEditorList: document.getElementById("fileTypeEditorList"),
+    newFileTypeInput: document.getElementById("newFileTypeInput")
   };
 
   document.getElementById("addMachineBtn").addEventListener("click", openNewMachineDialog);
@@ -40,12 +47,15 @@
   document.getElementById("healthBtn").addEventListener("click", checkHealth);
   document.getElementById("deleteMachineBtn").addEventListener("click", deleteActiveMachine);
   document.getElementById("addFolderBtn").addEventListener("click", openNewFolderDialog);
+  document.getElementById("manageFileTypesBtn").addEventListener("click", openFileTypesDialog);
+  document.getElementById("addFileTypeBtn").addEventListener("click", addEditingFileType);
   el.searchInput.addEventListener("input", renderResults);
   el.lanSearchInput.addEventListener("input", renderLanDevices);
 
   el.machineForm.addEventListener("submit", saveMachine);
   el.pairForm.addEventListener("submit", pairMachine);
   el.folderForm.addEventListener("submit", saveFolder);
+  el.fileTypesForm.addEventListener("submit", saveFileTypes);
 
   render();
 
@@ -71,6 +81,7 @@
     renderActiveMachine();
     renderLanDevices();
     renderFolders();
+    renderFileTypeTags();
     renderResults();
     persist();
   }
@@ -148,11 +159,15 @@
 
   function renderResults() {
     const query = el.searchInput.value.trim().toLowerCase();
-    const results = currentResults.filter((item) => item.relativePath.toLowerCase().includes(query));
+    const enabledTypes = new Set(state.fileTypes.filter((item) => item.enabled).map((item) => item.extension));
+    const results = currentResults.filter((item) => {
+      const extension = extensionOf(item.relativePath);
+      return enabledTypes.has(extension) && item.relativePath.toLowerCase().includes(query);
+    });
     el.resultList.innerHTML = "";
     if (!results.length) {
       el.resultList.className = "result-list empty";
-      el.resultList.textContent = currentResults.length ? "No files match the search." : "No files scanned.";
+      el.resultList.textContent = currentResults.length ? "No files match the active filters." : "No files scanned.";
       return;
     }
     el.resultList.className = "result-list";
@@ -160,14 +175,48 @@
       const row = document.createElement("div");
       row.className = "result-row";
       const link = apiUrl(activeMachine(), `/file/${encodeURIComponent(file.folderId)}/${file.relativePath.split("/").map(encodeURIComponent).join("/")}`);
+      row.tabIndex = 0;
+      row.setAttribute("role", "button");
+      row.setAttribute("aria-label", `Open ${file.relativePath}`);
       row.innerHTML = `
         <div>
           <a href="${link}" target="_blank" rel="noopener">${escapeHtml(file.name)}</a>
           <div class="result-path">${escapeHtml(file.relativePath)}</div>
         </div>
-        <span class="status">${escapeHtml(file.folderName)}</span>
+        <div class="row-actions">
+          <span class="status">${escapeHtml(extensionOf(file.relativePath))}</span>
+          <span class="status">${escapeHtml(file.folderName)}</span>
+        </div>
       `;
+      row.addEventListener("click", (event) => {
+        if (event.target.closest("a")) return;
+        window.open(link, "_blank", "noopener");
+      });
+      row.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          window.open(link, "_blank", "noopener");
+        }
+      });
       el.resultList.appendChild(row);
+    }
+  }
+
+  function renderFileTypeTags() {
+    el.fileTypeTags.innerHTML = "";
+    for (const type of state.fileTypes) {
+      const button = document.createElement("button");
+      button.className = `tag${type.enabled ? " active" : ""}`;
+      button.type = "button";
+      button.textContent = type.extension;
+      button.addEventListener("click", () => {
+        type.enabled = !type.enabled;
+        if (!state.fileTypes.some((item) => item.enabled)) type.enabled = true;
+        renderFileTypeTags();
+        renderResults();
+        persist();
+      });
+      el.fileTypeTags.appendChild(button);
     }
   }
 
@@ -435,12 +484,111 @@
     showToast("Machine added. Pair it to manage folders.");
   }
 
+  function openFileTypesDialog() {
+    editingFileTypes = state.fileTypes.map((item) => ({ ...item }));
+    el.newFileTypeInput.value = "";
+    renderFileTypeEditor();
+    el.fileTypesDialog.showModal();
+  }
+
+  function renderFileTypeEditor() {
+    el.fileTypeEditorList.innerHTML = "";
+    if (!editingFileTypes.length) {
+      el.fileTypeEditorList.className = "editor-list empty";
+      el.fileTypeEditorList.textContent = "No file types configured.";
+      return;
+    }
+    el.fileTypeEditorList.className = "editor-list";
+    editingFileTypes.forEach((type, index) => {
+      const row = document.createElement("div");
+      row.className = "editor-row";
+      row.innerHTML = `
+        <label class="checkbox"><input data-role="enabled" type="checkbox" ${type.enabled ? "checked" : ""}> Active</label>
+        <input data-role="extension" value="${escapeHtml(type.extension)}" aria-label="File extension">
+        <button data-role="delete" type="button" class="danger">Delete</button>
+      `;
+      row.querySelector('[data-role="enabled"]').addEventListener("change", (event) => {
+        editingFileTypes[index].enabled = event.target.checked;
+      });
+      row.querySelector('[data-role="extension"]').addEventListener("input", (event) => {
+        editingFileTypes[index].extension = event.target.value;
+      });
+      row.querySelector('[data-role="delete"]').addEventListener("click", () => {
+        editingFileTypes.splice(index, 1);
+        renderFileTypeEditor();
+      });
+      el.fileTypeEditorList.appendChild(row);
+    });
+  }
+
+  function addEditingFileType() {
+    const extension = normalizeExtension(el.newFileTypeInput.value);
+    if (!extension) return showToast("Enter a file extension.");
+    if (editingFileTypes.some((item) => normalizeExtension(item.extension) === extension)) {
+      return showToast("File type already exists.");
+    }
+    editingFileTypes.push({ extension, enabled: true });
+    el.newFileTypeInput.value = "";
+    renderFileTypeEditor();
+  }
+
+  function saveFileTypes(event) {
+    event.preventDefault();
+    const normalized = [];
+    for (const type of editingFileTypes) {
+      const extension = normalizeExtension(type.extension);
+      if (!extension || normalized.some((item) => item.extension === extension)) continue;
+      normalized.push({ extension, enabled: Boolean(type.enabled) });
+    }
+    if (!normalized.length) {
+      showToast("Keep at least one file type.");
+      return;
+    }
+    if (!normalized.some((item) => item.enabled)) normalized[0].enabled = true;
+    state.fileTypes = normalized;
+    el.fileTypesDialog.close();
+    render();
+    showToast("File filters updated.");
+  }
+
   function apiUrl(machine, path) {
     return `http://${machine.host}:${machine.port}${path}`;
   }
 
   function authHeaders(machine) {
     return { Authorization: `Bearer ${machine.token}` };
+  }
+
+  function ensureFileTypeState(targetState) {
+    const defaults = [
+      { extension: ".html", enabled: true },
+      { extension: ".md", enabled: true }
+    ];
+    if (!Array.isArray(targetState.fileTypes) || !targetState.fileTypes.length) {
+      targetState.fileTypes = defaults;
+      return;
+    }
+    targetState.fileTypes = targetState.fileTypes
+      .map((item) => ({
+        extension: normalizeExtension(item.extension || item),
+        enabled: item.enabled !== false
+      }))
+      .filter((item) => item.extension);
+    if (!targetState.fileTypes.length) targetState.fileTypes = defaults;
+    if (!targetState.fileTypes.some((item) => item.enabled)) targetState.fileTypes[0].enabled = true;
+  }
+
+  function extensionOf(filePath) {
+    const name = String(filePath).split("/").pop() || "";
+    const dotIndex = name.lastIndexOf(".");
+    return dotIndex > 0 ? name.slice(dotIndex).toLowerCase() : "";
+  }
+
+  function normalizeExtension(value) {
+    const extension = String(value || "").trim().toLowerCase();
+    if (!extension) return "";
+    const normalized = extension.startsWith(".") ? extension : `.${extension}`;
+    return /^\.[a-z0-9]+$/.test(normalized) ? normalized : "";
   }
 
   function showToast(message) {

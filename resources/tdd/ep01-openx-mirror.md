@@ -61,6 +61,19 @@ npm test
 4. Expect static files only.
 5. Expect `secret.env` absent.
 
+### File Type Filters
+
+1. Open dashboard with no stored filter config.
+2. Expect `.html` and `.md` tags to be active.
+3. Scan a folder containing `.html`, `.md`, and `.pdf`.
+4. Expect `.html` and `.md` files visible by default.
+5. Toggle `.md` off.
+6. Expect Markdown files hidden.
+7. Open the three-dot filter dialog.
+8. Add `.pdf`, save, and expect `.pdf` tag visible.
+9. Edit `.pdf` to `.txt`, save, and expect `.txt` tag visible.
+10. Delete `.txt`, save, and expect `.txt` tag removed.
+
 ### File Serve
 
 1. Request an allowed file path.
@@ -105,7 +118,8 @@ npm test
 3. Scan folder.
 4. Confirm static files appear.
 5. Search for `e2e`.
-6. Open `e2e.html` in a new tab.
+6. Click the `e2e.html` result item.
+7. Confirm `e2e.html` opens in a new tab.
 
 ### LAN Scan
 

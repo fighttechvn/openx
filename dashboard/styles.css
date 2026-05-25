@@ -56,6 +56,12 @@ button.danger {
   color: var(--danger);
 }
 
+button.icon-button {
+  width: 38px;
+  padding: 0;
+  font-weight: 800;
+}
+
 input {
   width: 100%;
   min-height: 38px;
@@ -181,6 +187,7 @@ p {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .panel {
@@ -197,6 +204,33 @@ p {
 
 .panel-header input {
   max-width: 280px;
+}
+
+.result-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -2px 0 12px;
+}
+
+.tag {
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: var(--muted);
+}
+
+.tag.active {
+  border-color: var(--accent);
+  background: #d8f3ee;
+  color: var(--accent-strong);
+  font-weight: 700;
 }
 
 .folder-list,
@@ -216,6 +250,16 @@ p {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px;
+}
+
+.result-row {
+  cursor: pointer;
+}
+
+.result-row:hover,
+.result-row:focus-visible {
+  border-color: var(--accent);
+  outline: none;
 }
 
 .folder-path,
@@ -247,6 +291,24 @@ dialog {
 dialog form {
   display: grid;
   gap: 12px;
+}
+
+.editor-list {
+  display: grid;
+  gap: 8px;
+}
+
+.editor-row {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.inline-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
 }
 
 label {
@@ -307,7 +369,10 @@ menu {
   .toolbar,
   .panel-header,
   .folder-row,
-  .result-row {
+  .result-row,
+  .device-row,
+  .editor-row,
+  .inline-add {
     grid-template-columns: 1fr;
     align-items: start;
   }
@@ -315,6 +380,10 @@ menu {
   .toolbar,
   .panel-header {
     display: grid;
+  }
+
+  .result-tools {
+    width: 100%;
   }
 
   .panel-header input {

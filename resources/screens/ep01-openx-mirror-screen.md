@@ -20,7 +20,8 @@
 |                              |   /Volumes/Fightech/Projects/lunar-ios          |
 |                              |                         [Scan] [Edit] [Delete]  |
 |                              +-------------------------------------------------+
-|                              | Static Files                         [Search]   |
+|                              | Static Files                   [Search] [...]   |
+|                              | [.html] [.md]                                  |
 |                              | + e2e.html                         lunar-ios    |
 |                              |   reports/e2e.html                              |
 |                              | + srs.html                         lunar-ios    |
@@ -37,6 +38,8 @@
 - Folder allowlist panel.
 - Folder add/edit dialog.
 - Static file result panel.
+- File type filter tags.
+- File type filter editor dialog.
 - Search input.
 - Toast status message.
 
@@ -52,6 +55,8 @@
 - Folder list empty.
 - Scan result empty.
 - Search no match.
+- File type filter active.
+- File type editor open.
 - API error.
 
 ## Events
@@ -68,4 +73,6 @@
 - Delete folder.
 - Scan folder.
 - Search files.
+- Toggle file type filter.
+- Manage file type filters.
 - Open file.

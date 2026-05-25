@@ -39,6 +39,15 @@ Allowed Local Folders
 }
 ```
 
+### Dashboard File Type Filter
+
+```json
+{
+  "extension": ".html",
+  "enabled": true
+}
+```
+
 ### Agent State
 
 ```json
@@ -139,8 +148,20 @@ POST /revoke
 1. Dashboard calls `GET /scan/:folderId`.
 2. Agent walks the allowed folder.
 3. Agent returns static file entries with relative paths.
-4. Dashboard builds file links pointing to `GET /file/:folderId/*relativePath`.
-5. Agent resolves the relative path inside the allowed root before streaming.
+4. Dashboard filters entries by enabled file type tags.
+5. Dashboard builds file links pointing to `GET /file/:folderId/*relativePath`.
+6. User can click either the link or the entire result item to open the file.
+7. Agent resolves the relative path inside the allowed root before streaming.
+
+## File Type Filter Flow
+
+1. Dashboard loads `fileTypes` from `localStorage`.
+2. If no filter configuration exists, defaults are `.html` and `.md`.
+3. User toggles tags to filter visible scan results.
+4. User clicks the three-dot button to open the filter editor.
+5. User can add, edit, delete, and enable or disable extensions.
+6. Dashboard normalizes extensions to lowercase dot-prefixed values.
+7. Dashboard keeps at least one extension enabled.
 
 ## LAN Discovery Flow
 
@@ -168,6 +189,7 @@ POST /revoke
 - HTTP traffic is not encrypted. Use a trusted LAN, VPN, reverse proxy, or HTTPS tunnel for stronger protection.
 - CORS is open for LAN convenience in the MVP.
 - Dashboard tokens live in browser local storage.
+- Dashboard file type filters live in browser local storage.
 - Agent is a developer tool, not a hardened internet-facing server.
 - LAN scan only detects OpenX Mirror agents on the configured port; it is not a full network inventory tool.
 
