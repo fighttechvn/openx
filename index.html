@@ -30,9 +30,43 @@
           <div class="toolbar-actions">
             <button id="editMachineBtn">Edit</button>
             <button id="pairBtn">Pair</button>
+            <button id="scanLanBtn">Scan LAN</button>
             <button id="healthBtn">Check</button>
             <button id="deleteMachineBtn" class="danger">Delete</button>
           </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Cloud Sync</h3>
+              <p>Sync machines, folders, and file filters across devices.</p>
+            </div>
+            <div class="toolbar-actions">
+              <button id="pullCloudBtn">Pull</button>
+              <button id="pushCloudBtn" class="primary">Push</button>
+            </div>
+          </div>
+          <div class="cloud-grid">
+            <label>Supabase URL <input id="cloudUrlInput" placeholder="https://project-ref.supabase.co"></label>
+            <label>Anon Key <input id="cloudAnonKeyInput" type="password" placeholder="Supabase anon key"></label>
+            <label>Workspace <input id="cloudWorkspaceInput" placeholder="openx-home"></label>
+            <label>Sync Key <input id="cloudSyncKeyInput" type="password" placeholder="At least 12 characters"></label>
+            <label>Name <input id="cloudWorkspaceNameInput" placeholder="Home Lab"></label>
+            <button id="saveCloudBtn">Save Cloud Settings</button>
+          </div>
+          <p id="cloudSyncMeta" class="cloud-meta">Cloud sync is not configured.</p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>LAN Devices</h3>
+              <p>OpenX agents discovered from the selected machine.</p>
+            </div>
+            <input id="lanSearchInput" type="search" placeholder="Search devices">
+          </div>
+          <div id="lanDeviceList" class="device-list empty">No LAN scan yet.</div>
         </section>
 
         <section class="panel">
@@ -50,10 +84,14 @@
           <div class="panel-header">
             <div>
               <h3>Static Files</h3>
-              <p>HTML files discovered from scans.</p>
+              <p>Static files discovered from scans.</p>
             </div>
-            <input id="searchInput" type="search" placeholder="Search files">
+            <div class="result-tools">
+              <input id="searchInput" type="search" placeholder="Search files">
+              <button id="manageFileTypesBtn" class="icon-button" aria-label="Manage file type filters">...</button>
+            </div>
           </div>
+          <div id="fileTypeTags" class="tag-list" aria-label="File type filters"></div>
           <div id="resultList" class="result-list empty">No files scanned.</div>
         </section>
       </main>
@@ -93,6 +131,21 @@
         <menu>
           <button value="cancel">Cancel</button>
           <button id="saveFolderBtn" value="default" class="primary">Save</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="fileTypesDialog">
+      <form method="dialog" id="fileTypesForm">
+        <h3>File Type Filters</h3>
+        <div id="fileTypeEditorList" class="editor-list"></div>
+        <div class="inline-add">
+          <input id="newFileTypeInput" placeholder=".html">
+          <button id="addFileTypeBtn" type="button">Add</button>
+        </div>
+        <menu>
+          <button value="cancel">Cancel</button>
+          <button id="saveFileTypesBtn" value="default" class="primary">Save</button>
         </menu>
       </form>
     </dialog>
